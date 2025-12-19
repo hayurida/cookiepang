@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>우리반 쿠키상점 쿠키팡! - v26 (글자삭제)</title>
+    <title>우리반 쿠키상점 쿠키팡! - v32 (관리자폼 리뉴얼)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -19,6 +19,11 @@
         .prod-img-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 0.5rem; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        /* 카테고리 칩 스타일 */
+        .chip-btn { transition: all 0.2s; }
+        .chip-btn:hover { background-color: #dbeafe; color: #1e40af; transform: translateY(-1px); }
+        .chip-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -56,6 +61,10 @@
             <input type="text" id="student-code-input" class="w-full border-2 border-gray-200 p-4 rounded-xl text-xl text-center focus:outline-none focus:border-blue-500 transition" placeholder="학생 코드 (예: XYZ123)">
             <button onclick="loginWithAPI()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold text-xl hover:bg-blue-700 shadow-lg transition transform active:scale-95">입장하기</button>
             <button onclick="loginDemo()" class="w-full bg-gray-100 text-gray-500 p-3 rounded-xl font-bold text-sm hover:bg-gray-200">체험하기 (테스트용)</button>
+            
+            <button onclick="openRequestModal()" class="w-full mt-4 text-gray-500 text-sm hover:text-blue-600 underline decoration-dashed underline-offset-4 transition">
+                💡 원하는 상품이 있나요? 입고 요청하기
+            </button>
         </div>
         <p class="mt-8 text-xs text-gray-400 text-center bg-gray-50 p-2 rounded-lg">
             ※ 다했니 API 정책상 본 앱에서의 쿠키 차감은<br>다했니 서버에 자동 반영되지 않습니다.
@@ -104,13 +113,13 @@
     <section id="section-admin" class="hidden absolute inset-0 bg-white z-[100] p-6 overflow-y-auto animate-[fadeIn_0.2s_ease-out]">
         <div class="flex justify-between items-center mb-8 sticky top-0 bg-white pt-2 pb-4 border-b z-10">
             <h2 class="text-2xl font-bold text-gray-800">👨‍🏫 선생님 관리 모드</h2>
-            <!-- [수정] s 글자 제거 및 버튼 정렬 -->
             <button onclick="closeAdmin()" class="bg-gray-100 p-2 rounded-full hover:bg-gray-200 cursor-pointer"><i data-lucide="x" class="w-6 h-6"></i></button>
         </div>
 
         <div class="flex mb-8 bg-gray-100 p-1.5 rounded-xl">
             <button onclick="switchAdminTab('products')" id="admin-tab-btn-products" class="flex-1 py-3 rounded-lg bg-white shadow-sm text-sm font-bold transition">📦 상품 설정</button>
-            <button onclick="switchAdminTab('orders')" id="admin-tab-btn-orders" class="flex-1 py-3 rounded-lg text-gray-500 text-sm font-bold hover:bg-gray-200 transition">🚚 주문/배송 관리</button>
+            <button onclick="switchAdminTab('orders')" id="admin-tab-btn-orders" class="flex-1 py-3 rounded-lg text-gray-500 text-sm font-bold hover:bg-gray-200 transition">🚚 주문 관리</button>
+            <button onclick="switchAdminTab('requests')" id="admin-tab-btn-requests" class="flex-1 py-3 rounded-lg text-gray-500 text-sm font-bold hover:bg-gray-200 transition">🙋‍♂️ 입고 요청</button>
         </div>
 
         <!-- [1] 상품 관리 탭 -->
@@ -137,22 +146,93 @@
 
             <div class="bg-blue-50 p-5 rounded-2xl mb-8 border border-blue-100 shadow-sm">
                 <h3 class="font-bold mb-4 flex items-center gap-2 text-blue-800" id="form-title"><i data-lucide="plus-circle" class="w-6 h-6"></i> 상품 관리</h3>
-                <div class="space-y-4">
-                    <input id="new-prod-name" type="text" placeholder="상품명" class="w-full border border-blue-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none">
-                    <div class="flex gap-3">
-                        <input id="new-prod-price" type="number" placeholder="가격" class="w-1/2 border border-blue-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none">
-                        <div class="w-1/2 flex flex-col gap-2">
-                            <input id="new-prod-icon" type="text" placeholder="이모지 (기본)" class="border border-blue-200 p-3 rounded-xl text-center focus:ring-2 focus:ring-blue-300 outline-none">
-                            <label class="text-xs text-gray-500 text-center cursor-pointer bg-white border border-gray-300 rounded-lg py-2 hover:bg-gray-50 font-bold transition">📷 사진 업로드<input type="file" id="new-prod-img-file" accept="image/*" class="hidden" onchange="previewImage(this)"></label>
+                
+                <!-- [NEW] 리뉴얼된 상품 등록 폼 -->
+                <div class="space-y-3">
+                    <!-- Row 1: 상품명 -->
+                    <div class="w-full">
+                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">상품명</label>
+                        <input id="new-prod-name" type="text" placeholder="예: 자유시간 1회권" class="w-full border border-blue-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none">
+                    </div>
+
+                    <!-- Row 2: 이모지(20%) + 카테고리(80%) -->
+                    <div class="flex gap-2">
+                        <div class="w-[20%]">
+                            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1 text-center">아이콘</label>
+                            <input id="new-prod-icon" type="text" placeholder="🎁" class="w-full border border-blue-200 p-3 rounded-xl text-center focus:ring-2 focus:ring-blue-300 outline-none">
+                        </div>
+                        <div class="w-[80%]">
+                            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">카테고리</label>
+                            <input id="new-prod-cat" type="text" placeholder="직접 입력하거나 아래 태그 선택" class="w-full border border-blue-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none">
+                            <!-- [NEW] 카테고리 칩 영역 -->
+                            <div id="category-chips-area" class="flex flex-wrap gap-1.5 mt-2">
+                                <!-- JS로 렌더링됨 -->
+                            </div>
                         </div>
                     </div>
-                    <div id="img-preview-area" class="hidden w-full h-32 bg-gray-200 rounded-xl flex items-center justify-center relative border-2 border-dashed border-gray-400"><img id="img-preview" class="h-full object-contain rounded-lg"><button onclick="clearImage()" class="absolute top-2 right-2 bg-gray-800 text-white rounded-full p-1.5 w-7 h-7 flex items-center justify-center text-sm hover:bg-black transition">x</button></div>
-                    <div class="relative"><input id="new-prod-cat" type="text" list="category-options" placeholder="카테고리 (직접 입력 가능)" class="w-full border border-blue-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none"><datalist id="category-options"></datalist></div>
-                    <div class="flex gap-3">
-                        <div class="flex items-center gap-2 bg-white p-3 rounded-xl border border-blue-200 flex-1"><span class="text-sm font-bold text-gray-600 pl-1">재고:</span><input id="new-prod-stock" type="number" min="0" placeholder="99" class="w-full border-b-2 border-gray-200 text-center focus:outline-none focus:border-blue-500 font-bold text-lg"></div>
-                        <div class="flex items-center gap-2 bg-white p-3 rounded-xl border border-blue-200 flex-1"><span class="text-sm font-bold text-gray-600 pl-1">할인:</span><input id="new-prod-discount" type="number" min="0" max="100" placeholder="0" class="w-12 border-b-2 border-gray-200 text-center focus:outline-none focus:border-blue-500 font-bold text-lg"><span class="text-sm text-gray-500">%</span></div>
+
+                    <!-- Row 3: 2x2 그리드 (가격, 재고, 할인, 유효기간) -->
+                    <div class="grid grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-blue-100">
+                        <!-- 가격 -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">가격 (쿠키)</label>
+                            <input id="new-prod-price" type="number" placeholder="50" class="w-full border-b-2 border-gray-200 p-2 text-center font-bold text-lg focus:outline-none focus:border-blue-500">
+                        </div>
+                        <!-- 재고 -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">재고 (개)</label>
+                            <input id="new-prod-stock" type="number" placeholder="99" class="w-full border-b-2 border-gray-200 p-2 text-center font-bold text-lg focus:outline-none focus:border-blue-500">
+                        </div>
+                        <!-- 할인 -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">할인율 (%)</label>
+                            <input id="new-prod-discount" type="number" min="0" max="100" placeholder="0" class="w-full border-b-2 border-gray-200 p-2 text-center font-bold text-lg focus:outline-none focus:border-blue-500 text-red-500">
+                        </div>
+                        <!-- [NEW] 유효기간 -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">유효기간 (일)</label>
+                            <input id="new-prod-expiry" type="number" min="1" placeholder="30" value="30" class="w-full border-b-2 border-gray-200 p-2 text-center font-bold text-lg focus:outline-none focus:border-blue-500 text-indigo-500">
+                        </div>
                     </div>
-                    <div class="flex gap-2 pt-2">
+
+                    <!-- Row 4: 사진 업로드 -->
+                    <label class="block w-full text-center bg-white border border-gray-300 rounded-xl py-3 text-sm font-bold text-gray-600 cursor-pointer hover:bg-gray-50 transition shadow-sm">
+                        <i data-lucide="camera" class="w-4 h-4 inline mr-1"></i> 대표 이미지 업로드 (선택)
+                        <input type="file" id="new-prod-img-file" accept="image/*" class="hidden" onchange="previewImage(this)">
+                    </label>
+                    
+                    <!-- 대표 이미지 미리보기 -->
+                    <div id="img-preview-area" class="hidden w-full h-40 bg-gray-200 rounded-xl flex items-center justify-center relative border-2 border-dashed border-gray-400 mt-2">
+                        <img id="img-preview" class="h-full object-contain rounded-lg">
+                        <button onclick="clearImage()" class="absolute top-2 right-2 bg-gray-800 text-white rounded-full p-1.5 w-7 h-7 flex items-center justify-center text-sm hover:bg-black transition">x</button>
+                    </div>
+
+                    <!-- Row 5: 시크릿 쿠폰 설정 -->
+                    <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 mt-2">
+                        <label class="flex items-center gap-2 cursor-pointer mb-2">
+                            <input type="checkbox" id="is-secret-mode" class="w-5 h-5 accent-yellow-600" onchange="toggleSecretMode()">
+                            <span class="text-sm font-bold text-yellow-800">🎟️ 시크릿 쿠폰(바코드) 설정</span>
+                        </label>
+                        <p class="text-xs text-yellow-600 mb-3 ml-7">
+                            체크 시, <b>대량으로 업로드한 쿠폰 이미지</b>가 학생들에게<br>
+                            구매 순서대로 <b>자동 발송(차감)</b>됩니다.<br>
+                            <span class="text-red-500 font-bold">* 재고는 업로드한 이미지 개수로 자동 설정됩니다.</span>
+                        </p>
+                        
+                        <div id="secret-img-area" class="hidden ml-1">
+                            <label class="block w-full text-center bg-white border border-dashed border-yellow-400 rounded-lg py-4 text-sm font-bold text-yellow-700 cursor-pointer hover:bg-yellow-100 transition shadow-sm">
+                                <i data-lucide="images" class="w-5 h-5 inline mr-1"></i> 쿠폰 이미지 일괄 업로드 (여러장 가능)
+                                <input type="file" id="secret-img-file" accept="image/*" class="hidden" multiple onchange="previewSecretImage(this)">
+                            </label>
+                            
+                            <!-- 시크릿 이미지 목록 미리보기 -->
+                            <div id="secret-img-preview-box" class="hidden mt-3 relative bg-white rounded-lg border border-yellow-200 p-2 max-h-60 overflow-y-auto">
+                                <!-- JS로 렌더링 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 pt-4">
                         <button id="btn-submit-prod" onclick="handleProductSubmit()" class="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 shadow-md transition transform active:scale-95">등록하기</button>
                         <button id="btn-cancel-edit" onclick="cancelEdit()" class="hidden w-24 bg-gray-200 text-gray-600 py-4 rounded-xl font-bold hover:bg-gray-300 transition">취소</button>
                     </div>
@@ -186,6 +266,23 @@
 
             <div id="admin-completed-list" class="space-y-2 mb-6"></div>
             <div id="order-pagination" class="flex justify-center gap-2 text-sm"></div>
+        </div>
+
+        <!-- [3] 입고 요청 관리 탭 -->
+        <div id="admin-tab-requests" class="hidden pb-20">
+            <h3 class="font-bold mb-4 text-xl flex items-center gap-2 text-indigo-700">
+                <i data-lucide="message-square-plus" class="w-6 h-6"></i> 학생 입고 요청 목록
+            </h3>
+            <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-6 text-sm text-indigo-800">
+                * 학생들이 <b>[입고 요청하기]</b>를 통해 보낸 메시지입니다.<br>
+                * 희망 상품이나 건의사항을 확인하고 관리해주세요.
+            </div>
+            
+            <div id="admin-request-list" class="space-y-3"></div>
+            <div id="admin-request-empty" class="hidden text-center py-16 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                <i data-lucide="mail-open" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                <p>등록된 입고 요청이 없습니다.</p>
+            </div>
         </div>
 
         <div class="border-t pt-8 pb-20 space-y-6">
@@ -230,7 +327,31 @@
     </div>
 </div>
 
-<!-- 정산 도우미 모달 (z-index 상향) -->
+<!-- 시크릿 쿠폰 확인 모달 -->
+<div id="modal-secret-coupon" class="fixed inset-0 bg-black/80 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl relative flex flex-col items-center">
+        <button onclick="closeSecretModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 p-1"><i data-lucide="x" class="w-8 h-8"></i></button>
+        <h3 class="font-bold text-xl mb-6 text-gray-800 mt-2">🎫 나의 쿠폰(바코드)</h3>
+        <div class="w-full bg-gray-100 rounded-xl p-2 flex items-center justify-center border-2 border-dashed border-gray-300 min-h-[200px]">
+            <img id="modal-secret-img" src="" class="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm">
+        </div>
+        <p class="text-center text-gray-500 text-sm mt-4">선생님이나 사용처에 이 화면을 보여주세요.</p>
+        <button onclick="closeSecretModal()" class="mt-6 w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-lg hover:bg-blue-700 transition">닫기</button>
+    </div>
+</div>
+
+<!-- 입고 요청 모달 -->
+<div id="modal-request" class="fixed inset-0 bg-black/60 z-[90] hidden flex items-center justify-center p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl relative">
+        <button onclick="closeRequestModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+        <h3 class="font-bold text-xl mb-4 text-gray-800 flex items-center gap-2"><i data-lucide="message-circle" class="w-6 h-6 text-indigo-500"></i> 입고 요청하기</h3>
+        <p class="text-sm text-gray-500 mb-4">먹고 싶은 간식이나 필요한 쿠폰이 있나요?<br>선생님께 건의해보세요!</p>
+        <textarea id="request-text" class="w-full border-2 border-indigo-100 rounded-xl p-3 h-32 focus:outline-none focus:border-indigo-500 resize-none text-base" placeholder="예: 초코우유 입고해주세요!"></textarea>
+        <button onclick="submitRequest()" class="w-full mt-4 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition">제출하기</button>
+    </div>
+</div>
+
+<!-- 정산 도우미 모달 -->
 <div id="settlement-modal" class="fixed inset-0 bg-black/60 z-[120] hidden flex items-center justify-center p-4 backdrop-blur-sm">
     <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl relative h-[70vh] flex flex-col">
         <div class="flex justify-between items-center mb-4">
@@ -250,17 +371,18 @@
 
 <script>
     const DEFAULT_PRODUCTS = [
-        { id: 1, name: "자리 바꾸기 1회권", basePrice: 50, img: "🪑", category: "특권", discount: 0, stock: 99 },
-        { id: 2, name: "급식 1등 식사권", basePrice: 30, img: "🍱", category: "특권", discount: 0, stock: 99 },
-        { id: 3, name: "숙제 1회 면제권", basePrice: 100, img: "🎟️", category: "면제", discount: 0, stock: 99 },
-        { id: 4, name: "랜덤 간식 뽑기", basePrice: 15, img: "🍬", category: "간식", discount: 0, stock: 99 },
-        { id: 5, name: "유튜브 DJ 신청곡", basePrice: 10, img: "🎵", category: "특권", discount: 0, stock: 99 },
-        { id: 6, name: "보드게임 30분권", basePrice: 40, img: "🎲", category: "특권", discount: 0, stock: 99 }
+        { id: 1, name: "자리 바꾸기 1회권", basePrice: 50, img: "🪑", category: "특권", discount: 0, stock: 99, expiryDays: 30 },
+        { id: 2, name: "급식 1등 식사권", basePrice: 30, img: "🍱", category: "특권", discount: 0, stock: 99, expiryDays: 30 },
+        { id: 3, name: "숙제 1회 면제권", basePrice: 100, img: "🎟️", category: "면제", discount: 0, stock: 99, expiryDays: 30 },
+        { id: 4, name: "랜덤 간식 뽑기", basePrice: 15, img: "🍬", category: "간식", discount: 0, stock: 99, expiryDays: 30 },
+        { id: 5, name: "유튜브 DJ 신청곡", basePrice: 10, img: "🎵", category: "특권", discount: 0, stock: 99, expiryDays: 30 },
+        { id: 6, name: "보드게임 30분권", basePrice: 40, img: "🎲", category: "특권", discount: 0, stock: 99, expiryDays: 30 }
     ];
 
     let PRODUCTS = [];
     let GLOBAL_DISCOUNT = 0;
     let ALL_ORDERS = [];
+    let REQUESTS = []; 
     let ADMIN_PW = "1234";
     let API_KEY = ""; 
     let currentUser = null;
@@ -268,7 +390,10 @@
     let currentCategory = 'ALL';
     let currentModalItem = null;
     let editingProductIndex = -1;
+    
+    // 이미지 업로드 변수
     let currentUploadImg = null;
+    let currentSecretImages = []; 
 
     lucide.createIcons();
     loadData();
@@ -285,7 +410,14 @@
 
             PRODUCTS.forEach(p => { 
                 if(typeof p.stock === 'undefined') p.stock = 99; 
-                if(!p.img) p.img = "🎁"; 
+                if(!p.img) p.img = "🎁";
+                if(p.secretImg && (!p.secretImages || p.secretImages.length === 0)) {
+                    p.secretImages = [p.secretImg];
+                    delete p.secretImg;
+                }
+                if(!p.secretImages) p.secretImages = [];
+                // [NEW] 유효기간 데이터 보정
+                if(typeof p.expiryDays === 'undefined') p.expiryDays = 30;
             });
 
             GLOBAL_DISCOUNT = parseInt(localStorage.getItem('dapang_global_discount') || '0');
@@ -296,8 +428,13 @@
             ALL_ORDERS = ordersData ? JSON.parse(ordersData) : [];
             ALL_ORDERS.forEach(o => { 
                 if(o.status === 'completed' && typeof o.settled === 'undefined') o.settled = false;
-                if(typeof o.used === 'undefined') o.used = false; 
+                if(typeof o.used === 'undefined') o.used = false;
+                if(typeof o.secretImg === 'undefined') o.secretImg = null; 
             });
+
+            const reqData = localStorage.getItem('dapang_product_requests');
+            REQUESTS = reqData ? JSON.parse(reqData) : [];
+
         } catch(e) {
             console.error("Load data error", e);
             PRODUCTS = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
@@ -307,6 +444,7 @@
     function saveData() {
         localStorage.setItem('dapang_products_master', JSON.stringify(PRODUCTS));
         localStorage.setItem('dapang_all_orders', JSON.stringify(ALL_ORDERS));
+        localStorage.setItem('dapang_product_requests', JSON.stringify(REQUESTS));
     }
 
     function loginDemo() { processLogin({ name: "체험학생", totalCookie: 300, badges: { "0": { title: "모범상", hasBadge: true } } }, "demo"); }
@@ -376,13 +514,18 @@
             const stockBadge = `<div class="absolute top-3 left-3 bg-gray-900/80 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10 backdrop-blur-sm">남은수량: ${p.stock}</div>`;
             const soldOutOverlay = isSoldOut ? `<div class="absolute inset-0 bg-black/50 rounded-xl z-20 flex items-center justify-center"><span class="text-white font-bold text-xl border-2 border-white px-3 py-1 rounded">SOLD OUT</span></div>` : '';
 
+            const secretBadge = (p.secretImages && p.secretImages.length > 0) ? `<div class="absolute bottom-2 left-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">🎫 쿠폰</div>` : '';
+
             const el = document.createElement('div');
             el.className = "bg-white p-4 rounded-2xl border-2 border-gray-100 shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-300 transition-all duration-300";
             el.innerHTML = `
                 ${soldOutOverlay}
                 ${stockBadge}
                 ${!isSoldOut && discount>0 ? `<div class="absolute top-0 right-0 bg-red-600 text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10 shadow-md">${discount}% SALE</div>` : ''}
-                <div class="w-full h-32 bg-gray-50 rounded-xl mb-4 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform duration-300">${getImgHtml(p.img)}</div>
+                <div class="w-full h-32 bg-gray-50 rounded-xl mb-4 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform duration-300 relative">
+                    ${getImgHtml(p.img)}
+                    ${secretBadge}
+                </div>
                 <div class="absolute top-36 right-3 text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded font-bold">${p.category}</div>
                 <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${p.name}</h3>
                 <div class="mt-auto">
@@ -407,6 +550,7 @@
         if(inCart) inCart.quantity++; else cart.push({id, name, price, img, quantity:1});
         saveUser(); updateCartBadge(); btn.innerText="담김!"; setTimeout(()=>{btn.innerText="장바구니"},500);
     }
+
     function checkoutCart() {
         for (const item of cart) { const prod = PRODUCTS.find(p => p.id === item.id); if (!prod || prod.stock < item.quantity) return alert(`'${item.name}' 재고 부족!`); }
         let totalCookie = 0; let totalCount = 0; cart.forEach(i => { totalCookie += (i.price * i.quantity); totalCount += i.quantity; });
@@ -414,24 +558,107 @@
         if(balance < totalCookie) { alert(`쿠키 부족! (부족: ${totalCookie - balance})`); return; }
         if(confirm(`총 ${totalCount}개 상품 주문하시겠습니까? (${totalCookie} 쿠키)`)) {
             const now = new Date().toLocaleString();
-            cart.forEach(item => { for(let i=0; i<item.quantity; i++) { currentUser.spent += item.price; ALL_ORDERS.push({ id: Date.now() + Math.random(), studentCode: currentUser.code, studentName: currentUser.name, name: item.name, price: item.price, img: item.img, date: now, status: 'pending', productId: item.id, settled: false, used: false }); } });
+            cart.forEach(item => { 
+                const prod = PRODUCTS.find(p => p.id === item.id);
+                for(let i=0; i<item.quantity; i++) { 
+                    currentUser.spent += item.price; 
+                    ALL_ORDERS.push({ 
+                        id: Date.now() + Math.random(), 
+                        studentCode: currentUser.code, 
+                        studentName: currentUser.name, 
+                        name: item.name, 
+                        price: item.price, 
+                        img: item.img, 
+                        secretImg: null, 
+                        date: now, 
+                        status: 'pending', 
+                        productId: item.id, 
+                        settled: false, 
+                        used: false 
+                    }); 
+                } 
+            });
             cart = []; saveUser(); saveData(); updateHeader(); updateCartBadge(); closeCart(); switchTab('history'); setTimeout(() => { alert("주문 완료! 🚚"); }, 100);
         }
     }
+
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); document.getElementById('tab-' + tabId).classList.remove('hidden'); document.getElementById('nav-' + tabId).classList.add('active');
         if(tabId === 'history') renderHistory(); if(tabId === 'search') document.getElementById('search-input').focus(); if(tabId === 'home') updateBanner(); window.scrollTo(0,0);
     }
+
     function renderHistory() {
         const list = document.getElementById('history-list'); if (!currentUser) return;
         const myOrders = ALL_ORDERS.filter(o => o.studentCode === currentUser.code).reverse();
         if(myOrders.length === 0) { list.innerHTML = "<div class='text-center text-gray-400 py-20 bg-white rounded-2xl shadow-sm border border-gray-100'><i class='lucide-clipboard-list w-12 h-12 mx-auto mb-2 opacity-20'></i><p>주문 내역이 없습니다.</p></div>"; return; }
+        
         list.innerHTML = myOrders.map(h => {
             const isPending = h.status === 'pending';
             const statusBadge = isPending ? `<span class="bg-yellow-100 text-yellow-700 text-xs font-bold px-2.5 py-1 rounded-full border border-yellow-200 animate-pulse flex items-center gap-1">🚚 배송중</span>` : (h.status==='rejected' ? `<span class="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full border border-red-200">🚫 취소됨</span>` : `<span class="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200 flex items-center gap-1"><i class="lucide-check w-3 h-3"></i> 배송완료</span>`);
             const cancelBtn = isPending ? `<button onclick="cancelOrder(${h.id})" class="mt-3 text-xs bg-white text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 font-bold w-full transition">주문취소</button>` : ``;
-            return `<div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center"><div class="flex items-center gap-4"><div class="w-14 h-14 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden text-3xl shadow-inner">${getImgHtml(h.img)}</div><div><div class="flex items-center gap-2"><p class="font-bold text-gray-800 text-base">${h.name}</p></div><p class="text-xs text-gray-400 mt-1">${h.date}</p><div class="mt-2">${statusBadge}</div></div></div><div class="text-right flex flex-col items-end min-w-[80px]"><p class="text-red-600 font-bold text-lg">-${h.price} <span class="text-xs text-gray-500">쿠키</span></p>${cancelBtn}</div></div>`;
+            
+            let secretBtn = '';
+            if (h.status === 'completed' && h.secretImg) {
+                secretBtn = `<button onclick="showSecretCoupon('${h.id}')" class="mt-2 w-full bg-yellow-400 text-yellow-900 text-xs font-bold py-2 rounded-lg hover:bg-yellow-500 shadow-sm transition flex items-center justify-center gap-1"><i data-lucide="ticket" class="w-4 h-4"></i> 쿠폰 확인하기</button>`;
+            }
+            
+            // 만료일 표시 (있는 경우)
+            const expiryText = h.expiryDate ? `<p class="text-[10px] text-gray-400">유효기간: ${h.expiryDate}까지</p>` : '';
+
+            return `<div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden text-3xl shadow-inner">${getImgHtml(h.img)}</div>
+                            <div>
+                                <div class="flex items-center gap-2"><p class="font-bold text-gray-800 text-base">${h.name}</p></div>
+                                <p class="text-xs text-gray-400 mt-1">${h.date}</p>
+                                ${expiryText}
+                                <div class="mt-2">${statusBadge}</div>
+                            </div>
+                        </div>
+                        <div class="text-right flex flex-col items-end min-w-[100px]">
+                            <p class="text-red-600 font-bold text-lg">-${h.price} <span class="text-xs text-gray-500">쿠키</span></p>
+                            ${cancelBtn}
+                            ${secretBtn}
+                        </div>
+                    </div>`;
         }).join('');
+        lucide.createIcons();
+    }
+
+    function showSecretCoupon(orderId) {
+        const order = ALL_ORDERS.find(o => o.id == orderId);
+        if (!order || !order.secretImg) return alert("쿠폰 이미지를 찾을 수 없습니다.");
+        document.getElementById('modal-secret-img').src = order.secretImg;
+        document.getElementById('modal-secret-coupon').classList.remove('hidden');
+    }
+
+    function closeSecretModal() {
+        document.getElementById('modal-secret-coupon').classList.add('hidden');
+    }
+
+    function openRequestModal() {
+        document.getElementById('modal-request').classList.remove('hidden');
+        document.getElementById('request-text').value = '';
+        document.getElementById('request-text').focus();
+    }
+
+    function closeRequestModal() {
+        document.getElementById('modal-request').classList.add('hidden');
+    }
+
+    function submitRequest() {
+        const text = document.getElementById('request-text').value.trim();
+        if(!text) return alert("내용을 입력해주세요.");
+        
+        REQUESTS.push({
+            id: Date.now(),
+            text: text,
+            date: new Date().toLocaleDateString()
+        });
+        saveData();
+        
+        closeRequestModal();
+        alert("입고 요청이 선생님께 전송되었습니다! 📨");
     }
 
     function openAdmin() {
@@ -439,16 +666,70 @@
         if (inputPw !== ADMIN_PW) { alert("비밀번호 불일치"); return; }
         const adminSection = document.getElementById('section-admin'); adminSection.classList.remove('hidden'); adminSection.scrollTop = 0; 
         loadData(); document.getElementById('global-discount-input').value = GLOBAL_DISCOUNT; document.getElementById('dahandin-api-key').value = API_KEY; 
-        switchAdminTab('products'); renderAdminList(); updateCategoryOptions(); cancelEdit();
+        switchAdminTab('products'); renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit();
     }
     function saveApiKey() { const key = document.getElementById('dahandin-api-key').value; if(!key) return alert("API Key를 입력하세요."); API_KEY = key; localStorage.setItem('dapang_api_key', API_KEY); alert("저장되었습니다."); }
     function closeAdmin() { document.getElementById('section-admin').classList.add('hidden'); loadData(); renderCategories(); renderProducts(); updateBanner(); }
-    function switchAdminTab(tab) { document.getElementById('admin-tab-products').classList.add('hidden'); document.getElementById('admin-tab-orders').classList.add('hidden'); document.getElementById('admin-tab-btn-products').className = "flex-1 py-3 rounded-lg text-gray-500 text-sm font-bold hover:bg-gray-200 transition"; document.getElementById('admin-tab-btn-orders').className = "flex-1 py-3 rounded-lg text-gray-500 text-sm font-bold hover:bg-gray-200 transition"; document.getElementById(`admin-tab-${tab}`).classList.remove('hidden'); document.getElementById(`admin-tab-btn-${tab}`).className = "flex-1 py-3 rounded-lg bg-white shadow-sm text-sm font-bold transition"; if(tab === 'orders') renderAdminOrders(); if(tab === 'products') renderAdminList(); }
+    
+    function switchAdminTab(tab) { 
+        document.getElementById('admin-tab-products').classList.add('hidden'); 
+        document.getElementById('admin-tab-orders').classList.add('hidden'); 
+        document.getElementById('admin-tab-requests').classList.add('hidden'); 
+        
+        ['products', 'orders', 'requests'].forEach(t => {
+            document.getElementById(`admin-tab-btn-${t}`).className = "flex-1 py-3 rounded-lg text-gray-500 text-sm font-bold hover:bg-gray-200 transition";
+        });
+
+        document.getElementById(`admin-tab-${tab}`).classList.remove('hidden'); 
+        document.getElementById(`admin-tab-btn-${tab}`).className = "flex-1 py-3 rounded-lg bg-white shadow-sm text-sm font-bold transition"; 
+        
+        if(tab === 'orders') renderAdminOrders(); 
+        if(tab === 'products') renderAdminList(); 
+        if(tab === 'requests') renderRequestList(); 
+    }
+
+    function renderRequestList() {
+        const list = document.getElementById('admin-request-list');
+        if(!REQUESTS || REQUESTS.length === 0) {
+            list.innerHTML = "";
+            document.getElementById('admin-request-empty').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('admin-request-empty').classList.add('hidden');
+        const sorted = [...REQUESTS].sort((a,b) => b.id - a.id);
+        
+        list.innerHTML = sorted.map((req, idx) => `
+            <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex justify-between items-start gap-4">
+                <div class="flex-1">
+                    <p class="text-gray-800 text-base font-medium whitespace-pre-wrap">${req.text}</p>
+                    <p class="text-xs text-gray-400 mt-2">${req.date}</p>
+                </div>
+                <button onclick="deleteRequest(${req.id})" class="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition" title="삭제">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </button>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    }
+
+    function deleteRequest(id) {
+        if(confirm("이 요청을 삭제하시겠습니까?")) {
+            const idx = REQUESTS.findIndex(r => r.id === id);
+            if(idx > -1) {
+                REQUESTS.splice(idx, 1);
+                saveData();
+                renderRequestList();
+            }
+        }
+    }
     
     function renderAdminList() { 
         const list = document.getElementById('admin-prod-list');
         if (!PRODUCTS || PRODUCTS.length === 0) { list.innerHTML = `<div class="text-center text-gray-400 py-10 bg-gray-50 rounded-lg border border-dashed border-gray-200">등록된 상품이 없습니다.</div>`; return; }
-        list.innerHTML = PRODUCTS.map((p,i)=>`<div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-3 hover:border-blue-300 transition"><div class="flex gap-4 items-center"><div class="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden text-2xl">${getImgHtml(p.img)}</div><div><p class="font-bold text-sm text-gray-800">${p.name}</p><p class="text-xs text-gray-500">${p.basePrice}쿠키 | 재고: ${p.stock}</p></div></div><div class="flex gap-2"><button onclick="editProduct(${i})" class="text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 transition">수정</button><button onclick="deleteProduct(${i})" class="text-red-500 bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 transition">삭제</button></div></div>`).join(''); 
+        list.innerHTML = PRODUCTS.map((p,i)=> {
+            const secretIcon = (p.secretImages && p.secretImages.length > 0) ? `<span class="text-xs bg-yellow-100 text-yellow-700 px-1.5 rounded border border-yellow-200 ml-1">🎫 x${p.secretImages.length}</span>` : '';
+            return `<div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-3 hover:border-blue-300 transition"><div class="flex gap-4 items-center"><div class="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden text-2xl">${getImgHtml(p.img)}</div><div><p class="font-bold text-sm text-gray-800 flex items-center">${p.name} ${secretIcon}</p><p class="text-xs text-gray-500">${p.basePrice}쿠키 | 재고: ${p.stock}</p></div></div><div class="flex gap-2"><button onclick="editProduct(${i})" class="text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 transition">수정</button><button onclick="deleteProduct(${i})" class="text-red-500 bg-red-50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 transition">삭제</button></div></div>`;
+        }).join(''); 
     }
 
     function renderAdminOrders() { 
@@ -524,7 +805,56 @@
         }
     }
 
-    function confirmOrder(id) { const order = ALL_ORDERS.find(o => o.id === id); if(!order) return; const prodIndex = PRODUCTS.findIndex(p => p.id === order.productId || p.name === order.name); if (prodIndex > -1) { if (PRODUCTS[prodIndex].stock > 0) { PRODUCTS[prodIndex].stock--; order.status = 'completed'; saveData(); renderAdminOrders(); } else { alert("재고 부족!"); } } else { if(confirm("상품 삭제됨. 승인?")) { order.status = 'completed'; saveData(); renderAdminOrders(); } } }
+    function confirmOrder(id) { 
+        const order = ALL_ORDERS.find(o => o.id === id); 
+        if(!order) return; 
+        
+        const prodIndex = PRODUCTS.findIndex(p => p.id === order.productId || p.name === order.name); 
+        
+        if (prodIndex > -1) { 
+            const product = PRODUCTS[prodIndex];
+            
+            // 시크릿 쿠폰 발송 로직
+            if (product.secretImages && product.secretImages.length > 0) {
+                if (product.secretImages.length === 0) {
+                    return alert("쿠폰(바코드) 이미지가 모두 소진되었습니다! 더 이상 승인할 수 없습니다.");
+                }
+                const assignedCoupon = product.secretImages.shift();
+                order.secretImg = assignedCoupon;
+                product.stock = product.secretImages.length;
+            } 
+            else {
+                if (product.stock > 0) { 
+                    product.stock--; 
+                } else { 
+                    return alert("재고 부족!"); 
+                } 
+            }
+
+            // [NEW] 유효기간 로직 추가
+            const today = new Date();
+            const expiryDate = new Date();
+            // 상품의 expiryDays 사용 (없으면 기본값 30)
+            const daysToAdd = parseInt(product.expiryDays || 30);
+            expiryDate.setDate(today.getDate() + daysToAdd);
+            order.expiryDate = expiryDate.toLocaleDateString();
+
+            order.status = 'completed'; 
+            saveData(); 
+            renderAdminOrders();
+            
+            if(product.secretImages && order.secretImg) {
+                alert(`쿠폰이 자동 발송되었습니다. (남은 쿠폰: ${product.stock}개)`);
+            }
+        } else { 
+            if(confirm("상품이 목록에서 삭제되었습니다. 강제로 승인하시겠습니까?")) { 
+                order.status = 'completed'; 
+                saveData(); 
+                renderAdminOrders(); 
+            } 
+        } 
+    }
+
     function rejectOrder(id) { if(confirm("주문취소 하겠습니까? (학생에게 환불됩니다)")) { const index = ALL_ORDERS.findIndex(o => o.id === id); if(index > -1) { ALL_ORDERS.splice(index, 1); currentUser.spent -= ALL_ORDERS[index].price; saveData(); saveUser(); renderAdminOrders(); alert("취소되었습니다."); } } }
     function cancelOrder(id) { if(confirm("취소?")) { const idx = ALL_ORDERS.findIndex(o => o.id === id); if(idx > -1 && ALL_ORDERS[idx].status==='pending') { currentUser.spent -= ALL_ORDERS[idx].price; ALL_ORDERS.splice(idx, 1); saveUser(); saveData(); updateHeader(); renderHistory(); alert("취소됨"); } } }
     function changeAdminPw() { const newPw = document.getElementById('new-admin-pw').value; if(!newPw) return; ADMIN_PW = newPw; localStorage.setItem('dapang_admin_pw', ADMIN_PW); alert("변경됨"); document.getElementById('new-admin-pw').value=""; }
@@ -534,20 +864,246 @@
     function removeFromCart(idx) { cart.splice(idx, 1); saveUser(); renderCart(); updateCartBadge(); }
     function openPurchaseModal(name, price, id, img) { currentModalItem = { name, price, id, img }; document.getElementById('modal-title').innerText = name; document.getElementById('modal-price').innerText = price; const imgContainer = document.getElementById('modal-img-area'); imgContainer.innerHTML = getImgHtml(img); if(img.startsWith('data:image')) { imgContainer.className = "w-24 h-24 rounded-lg mx-auto mb-4 overflow-hidden bg-white border border-gray-100 shadow-sm"; } else { imgContainer.className = "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-5xl bg-blue-50"; } document.getElementById('modal-backdrop').classList.remove('hidden'); }
     function closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); }
-    function confirmSinglePurchase() { if(!currentUser || !currentModalItem) return; const prod = PRODUCTS.find(p => p.id === currentModalItem.id); if(!prod || prod.stock <= 0) { alert("재고 부족!"); closeModal(); return; } const balance = (currentUser.apiTotal - currentUser.spent); if(balance < currentModalItem.price) { alert("쿠키 부족!"); closeModal(); return; } currentUser.spent += currentModalItem.price; ALL_ORDERS.push({ id: Date.now(), studentCode: currentUser.code, studentName: currentUser.name, name: currentModalItem.name, price: currentModalItem.price, img: currentModalItem.img, date: new Date().toLocaleString(), status: 'pending', productId: currentModalItem.id, settled: false }); saveUser(); saveData(); updateHeader(); closeModal(); switchTab('history'); setTimeout(() => { alert("주문 완료! 🚚"); }, 100); }
+    
+    function confirmSinglePurchase() { 
+        if(!currentUser || !currentModalItem) return; 
+        const prod = PRODUCTS.find(p => p.id === currentModalItem.id); 
+        if(!prod || prod.stock <= 0) { alert("재고 부족!"); closeModal(); return; } 
+        const balance = (currentUser.apiTotal - currentUser.spent); 
+        if(balance < currentModalItem.price) { alert("쿠키 부족!"); closeModal(); return; } 
+        currentUser.spent += currentModalItem.price; 
+        
+        ALL_ORDERS.push({ 
+            id: Date.now(), 
+            studentCode: currentUser.code, 
+            studentName: currentUser.name, 
+            name: currentModalItem.name, 
+            price: currentModalItem.price, 
+            img: currentModalItem.img, 
+            secretImg: null, 
+            date: new Date().toLocaleString(), 
+            status: 'pending', 
+            productId: currentModalItem.id, 
+            settled: false 
+        }); 
+        saveUser(); saveData(); updateHeader(); closeModal(); switchTab('history'); setTimeout(() => { alert("주문 완료! 🚚"); }, 100); 
+    }
+
     function updateCartBadge() { const c=cart.reduce((a,b)=>a+b.quantity,0); document.getElementById('nav-cart-badge').innerText=c; document.getElementById('nav-cart-badge').classList.toggle('hidden', c===0); }
     function updateCategoryOptions() { document.getElementById('category-options').innerHTML=[...new Set(PRODUCTS.map(p=>p.category))].map(c=>`<option value="${c}">`).join(''); }
+    
+    // [NEW] 카테고리 칩 렌더링
+    function renderCategoryChips() {
+        const chipsArea = document.getElementById('category-chips-area');
+        const categories = [...new Set(PRODUCTS.map(p => p.category))];
+        
+        if(categories.length === 0) {
+            chipsArea.innerHTML = "";
+            return;
+        }
+
+        chipsArea.innerHTML = categories.map(c => 
+            `<button onclick="selectCategory('${c}')" class="chip-btn px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold border border-blue-100">#${c}</button>`
+        ).join('');
+    }
+
+    function selectCategory(c) {
+        document.getElementById('new-prod-cat').value = c;
+    }
+
     function previewImage(input) { if(input.files && input.files[0]) { const reader=new FileReader(); reader.onload=e=>{currentUploadImg=e.target.result; document.getElementById('img-preview').src=currentUploadImg; document.getElementById('img-preview-area').classList.remove('hidden');}; reader.readAsDataURL(input.files[0]); } }
     function clearImage() { currentUploadImg=null; document.getElementById('new-prod-img-file').value=""; document.getElementById('img-preview-area').classList.add('hidden'); }
+    
+    async function previewSecretImage(input) { 
+        if (!input.files || input.files.length === 0) return;
+        currentSecretImages = []; 
+        const files = Array.from(input.files);
+        const readPromises = files.map(file => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        });
+        try {
+            currentSecretImages = await Promise.all(readPromises);
+            renderSecretPreview();
+        } catch(e) {
+            console.error(e);
+            alert("이미지 로딩 중 오류가 발생했습니다.");
+        }
+    }
+
+    function renderSecretPreview() {
+        const box = document.getElementById('secret-img-preview-box');
+        if (currentSecretImages.length === 0) {
+            box.classList.add('hidden');
+            return;
+        }
+        box.classList.remove('hidden');
+        let html = `<div class="text-xs text-center text-gray-500 mb-2 font-bold sticky top-0 bg-white py-1 border-b">총 ${currentSecretImages.length}개의 쿠폰 이미지 선택됨</div>`;
+        html += `<div class="grid grid-cols-4 gap-2">`;
+        currentSecretImages.forEach((img, idx) => {
+            html += `<div class="aspect-square bg-gray-100 rounded overflow-hidden border relative group">
+                        <img src="${img}" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/10 flex items-center justify-center text-[10px] text-white font-bold opacity-0 group-hover:opacity-100 transition">#${idx+1}</div>
+                     </div>`;
+        });
+        html += `</div>`;
+        html += `<button onclick="clearSecretImage()" class="absolute top-2 right-2 bg-gray-800 text-white rounded-full p-1 w-6 h-6 flex items-center justify-center text-xs hover:bg-black z-10">x</button>`;
+        box.innerHTML = html;
+        if(currentSecretImages.length > 0) {
+            document.getElementById('new-prod-stock').value = currentSecretImages.length;
+            document.getElementById('new-prod-stock').disabled = true; 
+            document.getElementById('new-prod-stock').title = "시크릿 모드에서는 업로드된 이미지 개수로 재고가 고정됩니다.";
+        }
+    }
+
+    function clearSecretImage() { 
+        currentSecretImages = []; 
+        document.getElementById('secret-img-file').value=""; 
+        document.getElementById('secret-img-preview-box').classList.add('hidden');
+        document.getElementById('new-prod-stock').disabled = false; 
+    }
+    
+    function toggleSecretMode() { 
+        const isSecret = document.getElementById('is-secret-mode').checked; 
+        document.getElementById('secret-img-area').classList.toggle('hidden', !isSecret);
+        if(!isSecret) clearSecretImage();
+        else if(currentSecretImages.length > 0) {
+             document.getElementById('new-prod-stock').value = currentSecretImages.length;
+             document.getElementById('new-prod-stock').disabled = true;
+        }
+    }
+
     function deleteProduct(i) { if(confirm("삭제?")) { PRODUCTS.splice(i,1); saveData(); renderAdminList(); } }
     function saveUser() { localStorage.setItem('dapang_user_'+currentUser.code, JSON.stringify({spent:currentUser.spent, cart:cart})); }
     function resetProducts() { if(confirm("초기화?")) { localStorage.clear(); location.reload(); } }
     function applyGlobalDiscount(v) { GLOBAL_DISCOUNT=v; localStorage.setItem('dapang_global_discount', GLOBAL_DISCOUNT); alert(`전체 할인율이 ${v}%로 적용되었습니다.`); }
     function filterProducts() { renderProducts('search-results', document.getElementById('search-input').value); }
     
-    function editProduct(i) { editingProductIndex=i; const p=PRODUCTS[i]; document.getElementById('new-prod-name').value=p.name; document.getElementById('new-prod-price').value=p.basePrice; document.getElementById('new-prod-cat').value=p.category; document.getElementById('new-prod-stock').value=p.stock; document.getElementById('new-prod-discount').value=p.discount||0; if(p.img.startsWith('data:image')) { currentUploadImg=p.img; document.getElementById('img-preview').src=p.img; document.getElementById('img-preview-area').classList.remove('hidden'); } else document.getElementById('new-prod-icon').value=p.img; document.getElementById('form-title').innerHTML='<i data-lucide="edit-3" class="w-6 h-6"></i> 상품 수정 중...'; document.getElementById('form-title').className="font-bold mb-4 flex items-center gap-2 text-green-700"; const btn=document.getElementById('btn-submit-prod'); btn.innerText="수정완료"; btn.className="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 shadow-md transition transform active:scale-95"; document.getElementById('btn-cancel-edit').classList.remove('hidden'); document.getElementById('section-admin').scrollTo({top:0, behavior:'smooth'}); lucide.createIcons(); }
-    function cancelEdit() { editingProductIndex=-1; document.getElementById('new-prod-name').value=""; document.getElementById('new-prod-price').value=""; document.getElementById('new-prod-cat').value=""; document.getElementById('new-prod-stock').value=""; document.getElementById('new-prod-discount').value=""; clearImage(); document.getElementById('form-title').innerHTML='<i data-lucide="plus-circle" class="w-6 h-6"></i> 상품 관리'; document.getElementById('form-title').className="font-bold mb-4 flex items-center gap-2 text-blue-800"; const btn=document.getElementById('btn-submit-prod'); btn.innerText="등록하기"; btn.className="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 shadow-md transition transform active:scale-95"; document.getElementById('btn-cancel-edit').classList.add('hidden'); lucide.createIcons(); }
-    function handleProductSubmit() { const name=document.getElementById('new-prod-name').value; const price=parseInt(document.getElementById('new-prod-price').value); const cat=document.getElementById('new-prod-cat').value; const stock=parseInt(document.getElementById('new-prod-stock').value); if(!name||!price||!cat||isNaN(stock)) return alert("입력 확인"); const icon=currentUploadImg||document.getElementById('new-prod-icon').value||"🎁"; const discount=parseInt(document.getElementById('new-prod-discount').value)||0; const newProd={id:editingProductIndex>=0?PRODUCTS[editingProductIndex].id:Date.now(), name, basePrice:price, img:icon, category:cat, discount, stock}; if(editingProductIndex>=0) { PRODUCTS[editingProductIndex]=newProd; alert("수정됨"); editingProductIndex=-1; } else { PRODUCTS.push(newProd); alert("등록됨"); } saveData(); renderAdminList(); updateCategoryOptions(); cancelEdit(); }
+    function editProduct(i) { 
+        editingProductIndex=i; const p=PRODUCTS[i]; 
+        document.getElementById('new-prod-name').value=p.name; 
+        document.getElementById('new-prod-price').value=p.basePrice; 
+        document.getElementById('new-prod-cat').value=p.category; 
+        document.getElementById('new-prod-stock').value=p.stock; 
+        document.getElementById('new-prod-discount').value=p.discount||0; 
+        // [NEW] 유효기간 로드
+        document.getElementById('new-prod-expiry').value = p.expiryDays || 30;
+        
+        if(p.img.startsWith('data:image')) { currentUploadImg=p.img; document.getElementById('img-preview').src=p.img; document.getElementById('img-preview-area').classList.remove('hidden'); } 
+        else document.getElementById('new-prod-icon').value=p.img; 
+        
+        if(p.secretImages && p.secretImages.length > 0) {
+            document.getElementById('is-secret-mode').checked = true;
+            document.getElementById('secret-img-area').classList.remove('hidden'); 
+            currentSecretImages = []; 
+            const box = document.getElementById('secret-img-preview-box');
+            box.classList.remove('hidden');
+            box.innerHTML = `<div class="p-4 text-center bg-gray-50 rounded-lg border border-gray-200">
+                                <p class="text-sm font-bold text-gray-700">현재 ${p.secretImages.length}장의 쿠폰이 저장되어 있습니다.</p>
+                                <p class="text-xs text-gray-400 mt-1">추가/변경하려면 위 버튼을 눌러 이미지를 새로 업로드하세요.<br>(새로 업로드 시 기존 쿠폰은 삭제됩니다)</p>
+                             </div>`;
+            document.getElementById('new-prod-stock').value = p.stock;
+            document.getElementById('new-prod-stock').disabled = true;
+        } else {
+            document.getElementById('is-secret-mode').checked = false;
+            document.getElementById('secret-img-area').classList.add('hidden');
+            currentSecretImages = [];
+        }
+
+        document.getElementById('form-title').innerHTML='<i data-lucide="edit-3" class="w-6 h-6"></i> 상품 수정 중...'; 
+        document.getElementById('form-title').className="font-bold mb-4 flex items-center gap-2 text-green-700"; 
+        const btn=document.getElementById('btn-submit-prod'); btn.innerText="수정완료"; btn.className="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 shadow-md transition transform active:scale-95"; 
+        document.getElementById('btn-cancel-edit').classList.remove('hidden'); 
+        document.getElementById('section-admin').scrollTo({top:0, behavior:'smooth'}); 
+        lucide.createIcons(); 
+    }
+    
+    function cancelEdit() { 
+        editingProductIndex=-1; 
+        document.getElementById('new-prod-name').value=""; 
+        document.getElementById('new-prod-price').value=""; 
+        document.getElementById('new-prod-cat').value=""; 
+        document.getElementById('new-prod-stock').value=""; 
+        document.getElementById('new-prod-discount').value=""; 
+        document.getElementById('new-prod-expiry').value="30"; // [NEW] 초기화
+        clearImage(); 
+        
+        const secretCheckbox = document.getElementById('is-secret-mode');
+        if(secretCheckbox) secretCheckbox.checked = false;
+        const secretArea = document.getElementById('secret-img-area');
+        if(secretArea) secretArea.classList.add('hidden');
+        clearSecretImage();
+
+        document.getElementById('form-title').innerHTML='<i data-lucide="plus-circle" class="w-6 h-6"></i> 상품 관리'; 
+        document.getElementById('form-title').className="font-bold mb-4 flex items-center gap-2 text-blue-800"; 
+        const btn=document.getElementById('btn-submit-prod'); btn.innerText="등록하기"; btn.className="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 shadow-md transition transform active:scale-95"; 
+        document.getElementById('btn-cancel-edit').classList.add('hidden'); 
+        lucide.createIcons(); 
+    }
+    
+    function handleProductSubmit() { 
+        const name=document.getElementById('new-prod-name').value; 
+        const price=parseInt(document.getElementById('new-prod-price').value); 
+        const cat=document.getElementById('new-prod-cat').value; 
+        let stock=parseInt(document.getElementById('new-prod-stock').value); 
+        
+        if(!name || isNaN(price) || !cat || isNaN(stock)) return alert("상품명, 가격, 카테고리, 재고를 모두 입력해주세요."); 
+        
+        const icon = currentUploadImg || document.getElementById('new-prod-icon').value || "🎁"; 
+        const discount = parseInt(document.getElementById('new-prod-discount').value)||0; 
+        // [NEW] 유효기간 저장
+        const expiryDays = parseInt(document.getElementById('new-prod-expiry').value)||30;
+
+        const isSecret = document.getElementById('is-secret-mode').checked;
+        let finalSecretImages = [];
+        
+        if(isSecret) {
+            if (currentSecretImages.length > 0) {
+                finalSecretImages = currentSecretImages;
+                stock = currentSecretImages.length; 
+            }
+            else if (editingProductIndex >= 0 && PRODUCTS[editingProductIndex].secretImages && PRODUCTS[editingProductIndex].secretImages.length > 0) {
+                finalSecretImages = PRODUCTS[editingProductIndex].secretImages;
+                stock = finalSecretImages.length; 
+            }
+            else {
+                finalSecretImages = [];
+            }
+        }
+
+        const newProd = {
+            id: editingProductIndex >= 0 ? PRODUCTS[editingProductIndex].id : Date.now(), 
+            name, 
+            basePrice: price, 
+            img: icon, 
+            category: cat, 
+            discount, 
+            stock, 
+            expiryDays, // [NEW] 저장
+            secretImages: finalSecretImages 
+        }; 
+
+        if(editingProductIndex >= 0) { 
+            PRODUCTS[editingProductIndex] = newProd; 
+            saveData(); 
+            renderAdminList(); 
+            updateCategoryOptions(); 
+            renderCategoryChips(); // [NEW] 칩 업데이트
+            cancelEdit(); 
+            setTimeout(() => { alert("상품이 성공적으로 수정되었습니다."); }, 10);
+        } else { 
+            PRODUCTS.push(newProd); 
+            saveData(); 
+            renderAdminList(); 
+            updateCategoryOptions(); 
+            renderCategoryChips(); // [NEW] 칩 업데이트
+            cancelEdit(); 
+            setTimeout(() => { alert("상품이 등록되었습니다."); }, 10);
+        } 
+    }
 </script>
 </body>
-</html>
+</html>ㄴ
