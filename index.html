@@ -403,6 +403,9 @@
             }
             if (!Array.isArray(PRODUCTS)) PRODUCTS = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
 
+            // [1] 데이터 정화 로직 추가
+            PRODUCTS = PRODUCTS.filter(p => p && p.id);
+
             PRODUCTS.forEach(p => { 
                 if(typeof p.stock === 'undefined') p.stock = 99; 
                 if(!p.img) p.img = "🎁";
@@ -434,6 +437,8 @@
             console.error("Load data error", e);
             PRODUCTS = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
         }
+        // [실행 요청] 칩 렌더링
+        renderCategoryChips();
     }
 
     function saveData() {
@@ -887,17 +892,38 @@
     function updateCartBadge() { const c=cart.reduce((a,b)=>a+b.quantity,0); document.getElementById('nav-cart-badge').innerText=c; document.getElementById('nav-cart-badge').classList.toggle('hidden', c===0); }
     function updateCategoryOptions() { document.getElementById('category-options').innerHTML=[...new Set(PRODUCTS.map(p=>p.category))].map(c=>`<option value="${c}">`).join(''); }
     
-    // [NEW] 카테고리 칩 렌더링 (업데이트된 로직)
+    // [1] 안전한 카테고리 칩 렌더링 (HTML이 없으면 자동 생성)
     function renderCategoryChips() {
-        const area = document.getElementById('category-chip-area');
-        if (!area) return;
-        
-        // 빈 값 제외하고 중복 제거
-        const uniqueCats = [...new Set(PRODUCTS.map(p => p.category))].filter(c => c && c.trim() !== '');
-        
-        area.innerHTML = uniqueCats.map(c => 
-            `<button onclick="selectCategory('${c}')" class="px-3 py-1 bg-gray-100 hover:bg-blue-100 hover:text-blue-600 text-gray-600 text-xs font-bold rounded-full transition border border-gray-200">${c}</button>`
-        ).join('');
+        try {
+            let area = document.getElementById('category-chip-area');
+            // 만약 영역이 없으면 강제로 생성해서 input 밑에 붙임
+            if (!area) {
+                const catInput = document.getElementById('new-prod-cat');
+                if(catInput) {
+                    area = document.createElement('div');
+                    area.id = 'category-chip-area';
+                    area.className = 'flex flex-wrap gap-2 mt-2 mb-2 min-h-[30px]';
+                    catInput.parentNode.appendChild(area);
+                } else {
+                    return; 
+                }
+            }
+            
+            // 데이터 안전 검사
+            if(!PRODUCTS) return;
+            const uniqueCats = [...new Set(PRODUCTS.filter(p => p && p.category).map(p => p.category))].filter(c => c && c.trim() !== '');
+            
+            if (uniqueCats.length === 0) {
+                area.innerHTML = '<span class="text-xs text-gray-400 py-1">등록된 태그 없음</span>';
+                return;
+            }
+
+            area.innerHTML = uniqueCats.map(c => 
+                `<button onclick="selectCategory('${c}')" class="px-3 py-1 bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 text-gray-500 text-xs font-bold rounded-full transition shadow-sm">${c}</button>`
+            ).join('');
+        } catch(e) {
+            console.error("Chip Render Error", e);
+        }
     }
 
     function selectCategory(c) {
@@ -975,127 +1001,141 @@
     function applyGlobalDiscount(v) { GLOBAL_DISCOUNT=v; localStorage.setItem('dapang_global_discount', GLOBAL_DISCOUNT); alert(`전체 할인율이 ${v}%로 적용되었습니다.`); }
     function filterProducts() { renderProducts('search-results', document.getElementById('search-input').value); }
     
-    function editProduct(i) { 
-        editingProductIndex=i; const p=PRODUCTS[i]; 
-        document.getElementById('new-prod-name').value=p.name; 
-        document.getElementById('new-prod-price').value=p.basePrice; 
-        document.getElementById('new-prod-cat').value=p.category; 
-        document.getElementById('new-prod-stock').value=p.stock; 
-        document.getElementById('new-prod-discount').value=p.discount||0; 
-        // [NEW] 유효기간 로드
+    // [4] 수정 모드 진입 (안전 버전)
+    function editProduct(i) {
+        editingProductIndex = i;
+        const p = PRODUCTS[i];
+        if(!p) return; // 데이터 없으면 중단
+
+        document.getElementById('new-prod-name').value = p.name;
+        document.getElementById('new-prod-price').value = p.basePrice;
+        document.getElementById('new-prod-cat').value = p.category;
+        document.getElementById('new-prod-stock').value = p.stock;
+        document.getElementById('new-prod-discount').value = p.discount || 0;
         document.getElementById('new-prod-expiry').value = p.expiryDays || 30;
-        
-        if(p.img.startsWith('data:image')) { currentUploadImg=p.img; document.getElementById('img-preview').src=p.img; document.getElementById('img-preview-area').classList.remove('hidden'); } 
-        else document.getElementById('new-prod-icon').value=p.img; 
-        
-        if(p.secretImages && p.secretImages.length > 0) {
+
+        if (p.img.startsWith('data:image')) {
+            currentUploadImg = p.img;
+            document.getElementById('img-preview').src = p.img;
+            document.getElementById('img-preview-area').classList.remove('hidden');
+        } else {
+            document.getElementById('new-prod-icon').value = p.img;
+        }
+
+        if (p.secretImages && p.secretImages.length > 0) {
             document.getElementById('is-secret-mode').checked = true;
-            document.getElementById('secret-img-area').classList.remove('hidden'); 
-            currentSecretImages = []; 
+            document.getElementById('secret-img-area').classList.remove('hidden');
             const box = document.getElementById('secret-img-preview-box');
             box.classList.remove('hidden');
-            box.innerHTML = `<div class="p-4 text-center bg-gray-50 rounded-lg border border-gray-200">
-                                <p class="text-sm font-bold text-gray-700">현재 ${p.secretImages.length}장의 쿠폰이 저장되어 있습니다.</p>
-                                <p class="text-xs text-gray-400 mt-1">추가/변경하려면 위 버튼을 눌러 이미지를 새로 업로드하세요.<br>(새로 업로드 시 기존 쿠폰은 삭제됩니다)</p>
-                             </div>`;
-            document.getElementById('new-prod-stock').value = p.stock;
+            box.innerHTML = `<div class="p-3 text-center bg-gray-50 text-xs rounded border text-gray-600">현재 ${p.secretImages.length}장의 쿠폰 대기 중</div>`;
             document.getElementById('new-prod-stock').disabled = true;
         } else {
             document.getElementById('is-secret-mode').checked = false;
             document.getElementById('secret-img-area').classList.add('hidden');
-            currentSecretImages = [];
+            document.getElementById('new-prod-stock').disabled = false;
         }
 
-        document.getElementById('form-title').innerHTML='<i data-lucide="edit-3" class="w-6 h-6"></i> 상품 수정 중...'; 
-        document.getElementById('form-title').className="font-bold mb-4 flex items-center gap-2 text-green-700"; 
-        const btn=document.getElementById('btn-submit-prod'); btn.innerText="수정완료"; btn.className="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 shadow-md transition transform active:scale-95"; 
-        document.getElementById('btn-cancel-edit').classList.remove('hidden'); 
-        document.getElementById('section-admin').scrollTo({top:0, behavior:'smooth'}); 
-        lucide.createIcons(); 
+        document.getElementById('form-title').innerHTML = '<i data-lucide="edit-3" class="w-6 h-6"></i> 상품 수정 중...';
+        document.getElementById('form-title').className = "font-bold mb-4 flex items-center gap-2 text-green-700";
+        
+        const btn = document.getElementById('btn-submit-prod');
+        btn.innerText = "수정완료";
+        btn.className = "flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 shadow-md transition transform active:scale-95";
+        
+        document.getElementById('btn-cancel-edit').classList.remove('hidden');
+        document.getElementById('section-admin').scrollTo({top:0, behavior:'smooth'});
+        lucide.createIcons();
     }
     
-    function cancelEdit() { 
-        editingProductIndex=-1; 
-        document.getElementById('new-prod-name').value=""; 
-        document.getElementById('new-prod-price').value=""; 
-        document.getElementById('new-prod-cat').value=""; 
-        document.getElementById('new-prod-stock').value=""; 
-        document.getElementById('new-prod-discount').value=""; 
-        document.getElementById('new-prod-expiry').value="30"; 
-        clearImage(); 
-        
-        const secretCheckbox = document.getElementById('is-secret-mode');
-        if(secretCheckbox) secretCheckbox.checked = false;
-        const secretArea = document.getElementById('secret-img-area');
-        if(secretArea) secretArea.classList.add('hidden');
-        clearSecretImage();
+    // [3] 안전한 수정 취소/초기화
+    function cancelEdit() {
+        editingProductIndex = -1;
+        try {
+            document.getElementById('new-prod-name').value = "";
+            document.getElementById('new-prod-price').value = "";
+            document.getElementById('new-prod-cat').value = "";
+            document.getElementById('new-prod-stock').value = "";
+            document.getElementById('new-prod-discount').value = "";
+            document.getElementById('new-prod-expiry').value = "30";
+            document.getElementById('new-prod-icon').value = "";
+            
+            clearImage();
+            clearSecretImage();
+            
+            const secretCheckbox = document.getElementById('is-secret-mode');
+            if(secretCheckbox) secretCheckbox.checked = false;
+            document.getElementById('secret-img-area').classList.add('hidden');
+            document.getElementById('new-prod-stock').disabled = false;
 
-        document.getElementById('form-title').innerHTML='<i data-lucide="plus-circle" class="w-6 h-6"></i> 상품 관리'; 
-        document.getElementById('form-title').className="font-bold mb-4 flex items-center gap-2 text-blue-800"; 
-        const btn=document.getElementById('btn-submit-prod'); btn.innerText="등록하기"; btn.className="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 shadow-md transition transform active:scale-95"; 
-        document.getElementById('btn-cancel-edit').classList.add('hidden'); 
-        lucide.createIcons(); 
+            document.getElementById('form-title').innerHTML = '<i data-lucide="plus-circle" class="w-6 h-6"></i> 상품 관리';
+            document.getElementById('form-title').className = "font-bold mb-4 flex items-center gap-2 text-blue-800";
+            
+            const btn = document.getElementById('btn-submit-prod');
+            btn.innerText = "등록하기";
+            btn.className = "flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 shadow-md transition transform active:scale-95";
+            
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+            lucide.createIcons();
+        } catch(e) { console.error(e); }
     }
     
-    function handleProductSubmit() { 
-        const name=document.getElementById('new-prod-name').value; 
-        const price=parseInt(document.getElementById('new-prod-price').value); 
-        const cat=document.getElementById('new-prod-cat').value; 
-        let stock=parseInt(document.getElementById('new-prod-stock').value); 
-        
-        if(!name || isNaN(price) || !cat || isNaN(stock)) return alert("상품명, 가격, 카테고리, 재고를 모두 입력해주세요."); 
-        
-        const icon = currentUploadImg || document.getElementById('new-prod-icon').value || "🎁"; 
-        const discount = parseInt(document.getElementById('new-prod-discount').value)||0; 
-        // [NEW] 유효기간 저장
-        const expiryDays = parseInt(document.getElementById('new-prod-expiry').value)||30;
+    // [2] 안전한 등록/수정 제출 (에러나도 멈추지 않음)
+    function handleProductSubmit() {
+        try {
+            const nameInput = document.getElementById('new-prod-name');
+            if(!nameInput) return; // 화면이 아직 안 그려졌으면 중단
 
-        const isSecret = document.getElementById('is-secret-mode').checked;
-        let finalSecretImages = [];
-        
-        if(isSecret) {
-            if (currentSecretImages.length > 0) {
-                finalSecretImages = currentSecretImages;
-                stock = currentSecretImages.length; 
+            const name = nameInput.value;
+            const price = parseInt(document.getElementById('new-prod-price').value);
+            const cat = document.getElementById('new-prod-cat').value;
+            let stock = parseInt(document.getElementById('new-prod-stock').value);
+            const expiryDays = parseInt(document.getElementById('new-prod-expiry').value) || 30;
+
+            if (!name || isNaN(price) || !cat || isNaN(stock)) {
+                return alert("상품명, 가격, 카테고리, 재고를 모두 입력해주세요.");
             }
-            else if (editingProductIndex >= 0 && PRODUCTS[editingProductIndex].secretImages && PRODUCTS[editingProductIndex].secretImages.length > 0) {
-                finalSecretImages = PRODUCTS[editingProductIndex].secretImages;
-                stock = finalSecretImages.length; 
+
+            const icon = currentUploadImg || document.getElementById('new-prod-icon').value || "🎁";
+            const discount = parseInt(document.getElementById('new-prod-discount').value) || 0;
+            const isSecret = document.getElementById('is-secret-mode').checked;
+            
+            let finalSecretImages = [];
+            if (isSecret) {
+                if (currentSecretImages && currentSecretImages.length > 0) {
+                    finalSecretImages = currentSecretImages;
+                    stock = currentSecretImages.length;
+                } else if (editingProductIndex >= 0 && PRODUCTS[editingProductIndex] && PRODUCTS[editingProductIndex].secretImages) {
+                    finalSecretImages = PRODUCTS[editingProductIndex].secretImages;
+                    stock = finalSecretImages.length;
+                }
             }
-            else {
-                finalSecretImages = [];
+
+            const newProd = {
+                id: editingProductIndex >= 0 ? PRODUCTS[editingProductIndex].id : Date.now(),
+                name, basePrice: price, img: icon, category: cat, discount, stock, expiryDays,
+                secretImages: finalSecretImages
+            };
+
+            if (editingProductIndex >= 0) {
+                PRODUCTS[editingProductIndex] = newProd;
+                saveData();
+                setTimeout(() => alert("수정되었습니다."), 10);
+            } else {
+                PRODUCTS.push(newProd);
+                saveData();
+                setTimeout(() => alert("등록되었습니다."), 10);
             }
+
+        } catch (e) {
+            alert("오류가 발생했지만 데이터는 보호되었습니다: " + e.message);
+            console.error(e);
+        } finally {
+            // [핵심] 에러가 나든 안 나든 무조건 실행되어 버튼을 원래대로 돌림
+            renderAdminList();
+            updateCategoryOptions();
+            renderCategoryChips();
+            cancelEdit(); 
         }
-
-        const newProd = {
-            id: editingProductIndex >= 0 ? PRODUCTS[editingProductIndex].id : Date.now(), 
-            name, 
-            basePrice: price, 
-            img: icon, 
-            category: cat, 
-            discount, 
-            stock, 
-            expiryDays, // [NEW] 저장
-            secretImages: finalSecretImages 
-        }; 
-
-        if(editingProductIndex >= 0) { 
-            PRODUCTS[editingProductIndex] = newProd; 
-            saveData(); 
-            renderAdminList(); 
-            updateCategoryOptions(); 
-            renderCategoryChips(); // [NEW] 칩 업데이트
-            cancelEdit(); 
-            setTimeout(() => { alert("상품이 성공적으로 수정되었습니다."); }, 10);
-        } else { 
-            PRODUCTS.push(newProd); 
-            saveData(); 
-            renderAdminList(); 
-            updateCategoryOptions(); 
-            renderCategoryChips(); // [NEW] 칩 업데이트
-            cancelEdit(); 
-            setTimeout(() => { alert("상품이 등록되었습니다."); }, 10);
-        } 
     }
 </script>
 </body>
