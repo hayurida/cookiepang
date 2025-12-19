@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>우리반 쿠키상점 쿠키팡! - v34 (관리자 버그 수정)</title>
+    <title>우리반 쿠키상점 쿠키팡! - v33 (관리자 UI 리뉴얼)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -117,11 +117,10 @@
             <button onclick="switchAdminTab('requests')" id="admin-tab-btn-requests" class="flex-1 py-3 rounded-lg text-gray-500 text-sm font-bold hover:bg-gray-200 transition">🙋‍♂️ 입고 요청</button>
         </div>
 
-        <!-- [1] 상품 관리 탭 (교체된 HTML) -->
+        <!-- [1] 상품 관리 탭 (순서 변경됨) -->
         <div id="admin-tab-products" class="pb-20">
             <div class="bg-blue-50 p-5 rounded-2xl mb-6 border border-blue-100 shadow-sm">
                 <h3 class="font-bold mb-4 flex items-center gap-2 text-blue-800" id="form-title"><i data-lucide="plus-circle" class="w-6 h-6"></i> 상품 관리</h3>
-                
                 <div class="space-y-4">
                     <input id="new-prod-name" type="text" placeholder="상품명 (예: 자유시간)" class="w-full border border-blue-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none bg-white">
                     
@@ -130,32 +129,20 @@
                             <input id="new-prod-icon" type="text" placeholder="🎁" class="w-full border border-blue-200 p-3 rounded-xl text-center focus:ring-2 focus:ring-blue-300 outline-none bg-white">
                         </div>
                         <div class="w-3/4">
-                            <input id="new-prod-cat" type="text" placeholder="카테고리 (직접 입력 가능)" class="w-full border border-blue-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none bg-white">
+                            <input id="new-prod-cat" type="text" placeholder="카테고리" class="w-full border border-blue-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none bg-white">
                             <div id="category-chip-area" class="flex flex-wrap gap-2 mt-2 min-h-[10px]"></div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-blue-100">
-                        <div>
-                            <span class="text-xs font-bold text-gray-500 block mb-1">가격 (쿠키)</span>
-                            <input id="new-prod-price" type="number" placeholder="50" class="w-full border-b-2 border-gray-200 text-center font-bold text-lg p-1">
-                        </div>
-                        <div>
-                            <span class="text-xs font-bold text-gray-500 block mb-1">재고 (개)</span>
-                            <input id="new-prod-stock" type="number" placeholder="99" class="w-full border-b-2 border-gray-200 text-center font-bold text-lg p-1">
-                        </div>
-                        <div>
-                            <span class="text-xs font-bold text-gray-500 block mb-1">할인율 (%)</span>
-                            <input id="new-prod-discount" type="number" placeholder="0" class="w-full border-b-2 border-gray-200 text-center font-bold text-lg p-1 text-red-500">
-                        </div>
-                        <div>
-                            <span class="text-xs font-bold text-blue-500 block mb-1">유효기간 (일)</span>
-                            <input id="new-prod-expiry" type="number" value="30" class="w-full border-b-2 border-blue-200 text-center font-bold text-lg p-1 text-blue-600">
-                        </div>
+                        <div><span class="text-xs font-bold text-gray-500 block mb-1">가격</span><input id="new-prod-price" type="number" placeholder="50" class="w-full border-b-2 border-gray-200 text-center font-bold text-lg p-1"></div>
+                        <div><span class="text-xs font-bold text-gray-500 block mb-1">재고</span><input id="new-prod-stock" type="number" placeholder="99" class="w-full border-b-2 border-gray-200 text-center font-bold text-lg p-1"></div>
+                        <div><span class="text-xs font-bold text-gray-500 block mb-1">할인(%)</span><input id="new-prod-discount" type="number" placeholder="0" class="w-full border-b-2 border-gray-200 text-center font-bold text-lg p-1 text-red-500"></div>
+                        <div><span class="text-xs font-bold text-blue-500 block mb-1">유효기간</span><input id="new-prod-expiry" type="number" value="30" class="w-full border-b-2 border-blue-200 text-center font-bold text-lg p-1 text-blue-600"></div>
                     </div>
 
-                    <label class="block w-full text-center bg-white border border-gray-300 rounded-xl py-3 text-sm font-bold text-gray-600 cursor-pointer hover:bg-gray-50 transition">
-                        <i data-lucide="camera" class="w-4 h-4 inline mr-1"></i> 대표 이미지 업로드
+                    <label class="block w-full text-center bg-white border border-gray-300 rounded-xl py-3 text-sm font-bold text-gray-600 cursor-pointer hover:bg-gray-50">
+                        <i data-lucide="camera" class="w-4 h-4 inline mr-1"></i> 사진 업로드
                         <input type="file" id="new-prod-img-file" accept="image/*" class="hidden" onchange="previewImage(this)">
                     </label>
                     <div id="img-preview-area" class="hidden w-full h-32 bg-gray-200 rounded-xl flex items-center justify-center relative border-2 border-dashed border-gray-400 mt-2">
@@ -166,7 +153,7 @@
                     <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 mt-2">
                         <label class="flex items-center gap-2 cursor-pointer mb-2">
                             <input type="checkbox" id="is-secret-mode" class="w-5 h-5 accent-yellow-600" onchange="toggleSecretMode()">
-                            <span class="text-sm font-bold text-yellow-800">🎟️ 시크릿 쿠폰(바코드) 설정</span>
+                            <span class="text-sm font-bold text-yellow-800">🎟️ 시크릿 쿠폰 설정</span>
                         </label>
                         <div id="secret-img-area" class="hidden ml-1">
                             <label class="block w-full text-center bg-white border border-dashed border-yellow-400 rounded-lg py-3 text-sm font-bold text-yellow-700 cursor-pointer">
@@ -196,72 +183,48 @@
             </div>
 
             <h3 class="font-bold mb-4 text-xl flex items-center gap-2 text-gray-800"><i data-lucide="package" class="w-6 h-6"></i> 등록된 상품 목록</h3>
-            <div id="admin-prod-list" class="space-y-3 mb-8 min-h-[100px] grid grid-cols-2 gap-2"></div>
+            <div id="admin-prod-list" class="space-y-3 mb-8 min-h-[100px]"></div>
 
             <div class="bg-gray-100 p-5 rounded-2xl mb-6">
-                <h3 class="font-bold mb-3 flex items-center gap-2 text-gray-700"><i data-lucide="key" class="w-5 h-5"></i> 다했니 API 설정</h3>
-                <div class="flex gap-2">
-                    <input type="password" id="dahandin-api-key" placeholder="API Key 입력" class="flex-1 border p-3 rounded-lg text-sm bg-white">
-                    <button onclick="saveApiKey()" class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-bold">저장</button>
-                </div>
-            </div>
-
-            <div class="bg-gray-100 p-5 rounded-2xl mb-6">
-                <h4 class="font-bold text-sm mb-3 text-gray-600 flex items-center gap-2"><i data-lucide="lock" class="w-4 h-4"></i> 관리자 비밀번호 변경</h4>
-                <div class="flex gap-2">
-                    <input type="password" id="new-admin-pw" placeholder="새 비밀번호" class="flex-1 border p-3 rounded-lg text-sm bg-white">
-                    <button onclick="changeAdminPw()" class="bg-gray-700 text-white px-5 py-3 rounded-lg text-sm font-bold">변경</button>
+                <h3 class="font-bold mb-3 flex items-center gap-2 text-gray-700">⚙️ 기타 설정</h3>
+                <div class="space-y-3">
+                    <input type="password" id="dahandin-api-key" placeholder="다했니 API Key" class="w-full border p-3 rounded-lg text-sm bg-white">
+                    <button onclick="saveApiKey()" class="w-full bg-gray-700 text-white py-2 rounded-lg text-sm font-bold">API Key 저장</button>
+                    <hr class="border-gray-300">
+                    <input type="password" id="new-admin-pw" placeholder="새 관리자 비밀번호" class="w-full border p-3 rounded-lg text-sm bg-white">
+                    <button onclick="changeAdminPw()" class="w-full bg-gray-700 text-white py-2 rounded-lg text-sm font-bold">비밀번호 변경</button>
                 </div>
             </div>
         </div>
 
         <!-- [2] 주문/배송 관리 탭 -->
         <div id="admin-tab-orders" class="hidden pb-20">
+            <!-- (기존 내용 유지) -->
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-xl flex items-center gap-2 text-orange-600"><i data-lucide="truck" class="w-6 h-6"></i> 미배송 주문 내역</h3>
                 <button onclick="approveAllOrders()" class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-200 flex items-center gap-1 transition"><i data-lucide="check-square" class="w-4 h-4"></i> 전체 승인</button>
             </div>
-            
             <div id="admin-order-list" class="space-y-3 mb-10"></div>
             <div id="admin-order-empty" class="text-center py-16 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 hidden"><i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-30"></i><p>현재 대기 중인 주문이 없습니다.</p></div>
-
             <hr class="my-8 border-gray-200">
-
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-xl flex items-center gap-2 text-green-700"><i data-lucide="check-circle" class="w-6 h-6"></i> 결제(배송) 완료 내역</h3>
                 <button onclick="openSettlementModal()" class="bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-yellow-200 flex items-center gap-1"><i data-lucide="calculator" class="w-4 h-4"></i> 미정산 내역 확인</button>
             </div>
-            
             <div class="flex gap-2 mb-4">
                 <input type="text" id="order-search" placeholder="학생 이름 또는 상품명 검색" class="border border-gray-300 p-3 rounded-xl w-full text-base focus:outline-none focus:border-blue-500" onkeyup="renderCompletedOrders(1)">
                 <button onclick="renderCompletedOrders(1)" class="bg-gray-200 p-3 rounded-xl text-gray-600 hover:bg-gray-300"><i data-lucide="search" class="w-6 h-6"></i></button>
             </div>
-
             <div id="admin-completed-list" class="space-y-2 mb-6"></div>
             <div id="order-pagination" class="flex justify-center gap-2 text-sm"></div>
         </div>
 
         <!-- [3] 입고 요청 관리 탭 -->
         <div id="admin-tab-requests" class="hidden pb-20">
-            <h3 class="font-bold mb-4 text-xl flex items-center gap-2 text-indigo-700">
-                <i data-lucide="message-square-plus" class="w-6 h-6"></i> 학생 입고 요청 목록
-            </h3>
-            <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-6 text-sm text-indigo-800">
-                * 학생들이 <b>[입고 요청하기]</b>를 통해 보낸 메시지입니다.<br>
-                * 희망 상품이나 건의사항을 확인하고 관리해주세요.
-            </div>
-            
+            <h3 class="font-bold mb-4 text-xl flex items-center gap-2 text-indigo-700"><i data-lucide="message-square-plus" class="w-6 h-6"></i> 학생 입고 요청 목록</h3>
+            <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-6 text-sm text-indigo-800">* 학생들이 <b>[입고 요청하기]</b>를 통해 보낸 메시지입니다.<br>* 희망 상품이나 건의사항을 확인하고 관리해주세요.</div>
             <div id="admin-request-list" class="space-y-3"></div>
-            <div id="admin-request-empty" class="hidden text-center py-16 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <i data-lucide="mail-open" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
-                <p>등록된 입고 요청이 없습니다.</p>
-            </div>
-        </div>
-
-        <div class="border-t pt-8 pb-20 space-y-6">
-            <div class="text-center">
-                <button onclick="resetProducts()" class="text-red-500 text-sm underline hover:text-red-700 font-medium">시스템 초기화 (모든 데이터 삭제)</button>
-            </div>
+            <div id="admin-request-empty" class="hidden text-center py-16 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200"><i data-lucide="mail-open" class="w-12 h-12 mx-auto mb-2 opacity-30"></i><p>등록된 입고 요청이 없습니다.</p></div>
         </div>
     </section>
 
@@ -354,11 +317,9 @@
     let currentUser = null;
     let cart = [];
     let currentCategory = 'ALL';
-    let currentAdminCategory = 'ALL'; // 관리자 필터용 변수
+    let currentAdminCategory = 'ALL'; // [NEW] 관리자 필터용 변수
     let currentModalItem = null;
     let editingProductIndex = -1;
-    
-    // 이미지 업로드 변수
     let currentUploadImg = null;
     let currentSecretImages = []; 
 
@@ -416,6 +377,7 @@
         localStorage.setItem('dapang_product_requests', JSON.stringify(REQUESTS));
     }
 
+    // ... (Login, User related functions are same) ...
     function loginDemo() { processLogin({ name: "체험학생", totalCookie: 300, badges: { "0": { title: "모범상", hasBadge: true } } }, "demo"); }
     async function loginWithAPI() {
         const code = document.getElementById('student-code-input').value;
@@ -471,6 +433,7 @@
         if (maxDiscount > 0) { banner.classList.remove('hidden'); document.getElementById('banner-text').innerText = `🔥 현재 최대 ${maxDiscount}% 세일 진행 중!`; } else { banner.classList.add('hidden'); }
     }
 
+    // ... (Main Product List Render) ...
     function renderProducts(tgt='product-list', filter='') {
         const container = document.getElementById(tgt); if(!container) return; container.innerHTML = "";
         let list = currentCategory==='ALL' ? PRODUCTS : PRODUCTS.filter(p=>p.category===currentCategory);
@@ -482,7 +445,6 @@
             const isSoldOut = p.stock <= 0;
             const stockBadge = `<div class="absolute top-3 left-3 bg-gray-900/80 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10 backdrop-blur-sm">남은수량: ${p.stock}</div>`;
             const soldOutOverlay = isSoldOut ? `<div class="absolute inset-0 bg-black/50 rounded-xl z-20 flex items-center justify-center"><span class="text-white font-bold text-xl border-2 border-white px-3 py-1 rounded">SOLD OUT</span></div>` : '';
-
             const secretBadge = (p.secretImages && p.secretImages.length > 0) ? `<div class="absolute bottom-2 left-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">🎫 쿠폰</div>` : '';
 
             const el = document.createElement('div');
@@ -511,6 +473,7 @@
         });
     }
 
+    // ... (Cart and Order functions) ...
     function addToCart(id, name, price, img, btn) {
         const prod = PRODUCTS.find(p => p.id === id);
         if(!prod || prod.stock <= 0) return alert("재고가 부족합니다.");
@@ -589,7 +552,7 @@
         const inputPw = prompt(ADMIN_PW === "1234" ? "관리자 비밀번호를 입력하세요 (기본: 1234)" : "관리자 비밀번호를 입력하세요");
         if (inputPw !== ADMIN_PW) { alert("비밀번호 불일치"); return; }
         const adminSection = document.getElementById('section-admin'); adminSection.classList.remove('hidden'); adminSection.scrollTop = 0; 
-        loadData(); document.getElementById('global-discount-input').value = GLOBAL_DISCOUNT; document.getElementById('dahandin-api-key').value = API_KEY; 
+        loadData(); document.getElementById('dahandin-api-key').value = API_KEY; 
         switchAdminTab('products'); renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit();
     }
     function saveApiKey() { const key = document.getElementById('dahandin-api-key').value; if(!key) return alert("API Key를 입력하세요."); API_KEY = key; localStorage.setItem('dapang_api_key', API_KEY); alert("저장되었습니다."); }
@@ -667,12 +630,9 @@
 
     // [NEW] 관리자 목록 렌더링 (그리드 + 필터)
     function renderAdminList() {
-        // 필터 영역이 존재하는지 확인 (HTML 교체로 인해 없을 수 있음)
-        // 만약 사용자 제공 HTML에 필터 영역이 없다면 이 부분은 스킵하거나 에러 처리 필요
-        // 현재 사용자 제공 HTML에는 필터 영역이 없으므로, 에러 방지를 위해 체크
+        const cats = ['ALL', ...new Set(PRODUCTS.map(p => p.category))].filter(Boolean);
         const filterContainer = document.getElementById('admin-category-filter');
         if(filterContainer) {
-            const cats = ['ALL', ...new Set(PRODUCTS.map(p => p.category))].filter(Boolean);
             filterContainer.innerHTML = cats.map(c =>
                 `<button onclick="filterAdminCategory('${c}')"
                     class="px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition border ${currentAdminCategory === c ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}">
@@ -682,8 +642,6 @@
         }
 
         const list = document.getElementById('admin-prod-list');
-        if(!list) return;
-
         let filtered = PRODUCTS;
         if (currentAdminCategory !== 'ALL') {
             filtered = PRODUCTS.filter(p => p.category === currentAdminCategory);
