@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>우리반 쿠키상점 쿠키팡! - v34 (최종수정)</title>
+    <title>우리반 쿠키상점 쿠키팡! - v34 (디자인개선)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -45,8 +45,8 @@
         </div>
     </header>
 
-    <!-- 1. 로그인 화면 (수정됨: 잘림 방지) -->
-    <section id="login-section" class="p-10 flex flex-col items-center justify-center min-h-[90vh] py-20">
+    <!-- 1. 로그인 화면 -->
+    <section id="login-section" class="p-10 flex flex-col items-center justify-center h-[70vh]">
         <div class="text-center mb-10">
             <div class="text-7xl mb-6 animate-bounce">🍪</div>
             <h2 class="text-3xl font-bold mb-3 text-gray-800">우리반 쿠키 상점</h2>
@@ -130,7 +130,7 @@
                         </div>
                         <div class="w-3/4">
                             <input id="new-prod-cat" type="text" placeholder="카테고리" class="w-full border border-blue-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none bg-white">
-                            <div id="category-chip-area" class="flex flex-wrap gap-2 mt-2 min-h-[30px]"></div>
+                            <div id="category-chip-area" class="flex flex-wrap gap-2 mt-2 min-h-[10px]"></div>
                         </div>
                     </div>
 
@@ -184,7 +184,8 @@
             </div>
 
             <h3 class="font-bold mb-4 text-xl flex items-center gap-2 text-gray-800"><i data-lucide="package" class="w-6 h-6"></i> 등록된 상품 목록</h3>
-            <div id="admin-prod-list" class="space-y-3 mb-8 min-h-[100px]"></div>
+            <div id="admin-category-filter" class="flex overflow-x-auto gap-2 mb-3 pb-2 scrollbar-hide"></div>
+            <div id="admin-prod-list" class="grid grid-cols-2 gap-2 mb-8 min-h-[100px]"></div>
 
             <div class="bg-gray-100 p-5 rounded-2xl mb-6">
                 <h3 class="font-bold mb-3 flex items-center gap-2 text-gray-700">⚙️ 기타 설정</h3>
@@ -204,6 +205,7 @@
 
         <!-- [2] 주문/배송 관리 탭 -->
         <div id="admin-tab-orders" class="hidden pb-20">
+            <!-- (기존 내용 유지) -->
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-xl flex items-center gap-2 text-orange-600"><i data-lucide="truck" class="w-6 h-6"></i> 미배송 주문 내역</h3>
                 <button onclick="approveAllOrders()" class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-200 flex items-center gap-1 transition"><i data-lucide="check-square" class="w-4 h-4"></i> 전체 승인</button>
@@ -317,7 +319,7 @@
     let ALL_ORDERS = [];
     let REQUESTS = []; 
     let ADMIN_PW = "1234";
-    let API_KEY = ""; 
+    let API_KEY = ""; // [NEW] API Key 보안 처리
     let currentUser = null;
     let cart = [];
     let currentCategory = 'ALL';
@@ -379,143 +381,6 @@
         localStorage.setItem('dapang_products_master', JSON.stringify(PRODUCTS));
         localStorage.setItem('dapang_all_orders', JSON.stringify(ALL_ORDERS));
         localStorage.setItem('dapang_product_requests', JSON.stringify(REQUESTS));
-    }
-
-    // [함수 추가] 누락된 함수 복구
-    function updateCategoryOptions() {
-        const dataList = document.getElementById('category-options');
-        if(dataList) {
-            const cats = [...new Set(PRODUCTS.map(p => p.category))].filter(c => c && c.trim() !== '');
-            dataList.innerHTML = cats.map(c => `<option value="${c}">`).join('');
-        }
-    }
-
-    // [1] API 키 숨김 처리 및 초기화
-    function openAdmin() {
-        const inputPw = prompt(ADMIN_PW === "1234" ? "관리자 비밀번호 (기본: 1234)" : "관리자 비밀번호 입력");
-        if (inputPw !== ADMIN_PW) return alert("비밀번호 불일치");
-        
-        const adminSection = document.getElementById('section-admin');
-        adminSection.classList.remove('hidden'); 
-        adminSection.scrollTop = 0; 
-        
-        loadData(); 
-        
-        const apiKeyInput = document.getElementById('dahandin-api-key');
-        if(apiKeyInput) {
-            apiKeyInput.value = ""; 
-            apiKeyInput.placeholder = API_KEY ? "✅ API Key가 등록되어 있습니다 (보안상 숨김)" : "다했니 API Key 입력";
-        }
-        
-        switchAdminTab('products'); 
-        
-        renderAdminList(); 
-        updateCategoryOptions(); 
-        renderCategoryChips(); 
-        cancelEdit();
-    }
-
-    // [2] 상품 목록 3열 그리드 & UI 겹침 해결
-    function renderAdminList() {
-        const list = document.getElementById('admin-prod-list');
-        if (!PRODUCTS) return;
-
-        const uniqueCats = ['ALL', ...new Set(PRODUCTS.map(p => p.category))].filter(Boolean);
-        let filterHtml = '<div class="flex gap-1 overflow-x-auto pb-2 mb-2 scrollbar-hide">';
-        filterHtml += uniqueCats.map(c => 
-            `<button onclick="currentAdminCategory='${c}'; renderAdminList()" 
-              class="px-3 py-1 rounded-full text-xs font-bold border transition whitespace-nowrap 
-              ${currentAdminCategory===c ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 border-gray-200'}">
-              ${c==='ALL'?'전체':c}
-            </button>`
-        ).join('');
-        filterHtml += '</div>';
-
-        let displayList = currentAdminCategory === 'ALL' ? PRODUCTS : PRODUCTS.filter(p => p.category === currentAdminCategory);
-        let gridHtml = '';
-
-        if (displayList.length === 0) {
-            gridHtml = `<div class="text-center text-gray-400 py-10 col-span-3 border border-dashed rounded-lg">상품이 없습니다.</div>`;
-        } else {
-            // [레이아웃 수정] grid-cols-3 적용
-            gridHtml = displayList.map((p) => {
-                const realIndex = PRODUCTS.findIndex(item => item.id === p.id);
-                // [UI 수정] 뱃지 디자인 개선
-                const secretBadge = (p.secretImages && p.secretImages.length > 0) 
-                    ? `<span class="absolute bottom-1 right-1 bg-yellow-400/90 text-yellow-900 text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm z-20 backdrop-blur-sm">🎫 ${p.secretImages.length}</span>` 
-                    : '';
-                
-                return `
-                <div class="bg-white p-2 rounded-xl border border-gray-200 shadow-sm flex flex-col relative group hover:border-blue-300 transition">
-                    <div class="w-full aspect-square bg-gray-50 rounded-lg mb-2 flex items-center justify-center overflow-hidden relative border border-gray-100">
-                        ${getImgHtml(p.img).replace('text-6xl', 'text-4xl')} ${secretBadge}
-                    </div>
-                    <div class="flex-1 flex flex-col min-w-0 text-center">
-                        <p class="font-bold text-xs text-gray-800 truncate mb-1">${p.name}</p>
-                        <div class="flex justify-center items-center text-[10px] text-gray-500 gap-1 mb-2">
-                            <span class="font-bold text-blue-600">${p.basePrice}C</span>
-                            <span class="bg-gray-100 px-1 rounded">재고 ${p.stock}</span>
-                        </div>
-                    </div>
-                    <div class="flex gap-1 mt-auto pt-1 border-t border-gray-100">
-                        <button onclick="editProduct(${realIndex})" class="flex-1 bg-blue-50 text-blue-600 py-1 rounded text-[10px] font-bold hover:bg-blue-100">수정</button>
-                        <button onclick="deleteProduct(${realIndex})" class="flex-1 bg-red-50 text-red-500 py-1 rounded text-[10px] font-bold hover:bg-red-100">삭제</button>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        list.innerHTML = filterHtml + `<div class="grid grid-cols-3 gap-2 w-full">` + gridHtml + `</div>`;
-        lucide.createIcons();
-    }
-
-    // [3] 에러 없는 저장 함수
-    function handleProductSubmit() {
-        const name = document.getElementById('new-prod-name').value;
-        const price = parseInt(document.getElementById('new-prod-price').value);
-        const cat = document.getElementById('new-prod-cat').value;
-        let stock = parseInt(document.getElementById('new-prod-stock').value);
-        const expiryDays = parseInt(document.getElementById('new-prod-expiry').value) || 30;
-
-        if (!name || isNaN(price) || !cat || isNaN(stock)) return alert("필수 정보를 입력해주세요.");
-
-        const icon = currentUploadImg || document.getElementById('new-prod-icon').value || "🎁";
-        const discount = parseInt(document.getElementById('new-prod-discount').value) || 0;
-        
-        const isSecret = document.getElementById('is-secret-mode').checked;
-        let finalSecretImages = [];
-        if (isSecret) {
-            if (currentSecretImages.length > 0) finalSecretImages = currentSecretImages;
-            else if (editingProductIndex >= 0 && PRODUCTS[editingProductIndex].secretImages) finalSecretImages = PRODUCTS[editingProductIndex].secretImages;
-            
-            if(finalSecretImages.length > 0) stock = finalSecretImages.length;
-        }
-
-        const newProd = {
-            id: editingProductIndex >= 0 ? PRODUCTS[editingProductIndex].id : Date.now(),
-            name, basePrice: price, img: icon, category: cat, discount, stock, expiryDays,
-            secretImages: finalSecretImages
-        };
-
-        if (editingProductIndex >= 0) {
-            PRODUCTS[editingProductIndex] = newProd;
-            saveData();
-            renderAdminList();
-            
-            if(typeof updateCategoryOptions === 'function') updateCategoryOptions(); 
-            
-            renderCategoryChips();
-            cancelEdit(); 
-            setTimeout(() => alert("수정되었습니다."), 50);
-        } else {
-            PRODUCTS.push(newProd);
-            saveData();
-            renderAdminList();
-            if(typeof updateCategoryOptions === 'function') updateCategoryOptions();
-            renderCategoryChips();
-            cancelEdit();
-            setTimeout(() => alert("등록되었습니다."), 50);
-        }
     }
 
     function loginDemo() { processLogin({ name: "체험학생", totalCookie: 300, badges: { "0": { title: "모범상", hasBadge: true } } }, "demo"); }
@@ -584,7 +449,6 @@
             const isSoldOut = p.stock <= 0;
             const stockBadge = `<div class="absolute top-3 left-3 bg-gray-900/80 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10 backdrop-blur-sm">남은수량: ${p.stock}</div>`;
             const soldOutOverlay = isSoldOut ? `<div class="absolute inset-0 bg-black/50 rounded-xl z-20 flex items-center justify-center"><span class="text-white font-bold text-xl border-2 border-white px-3 py-1 rounded">SOLD OUT</span></div>` : '';
-
             const secretBadge = (p.secretImages && p.secretImages.length > 0) ? `<div class="absolute bottom-2 left-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">🎫 쿠폰</div>` : '';
 
             const el = document.createElement('div');
@@ -662,35 +526,16 @@
         const list = document.getElementById('history-list'); if (!currentUser) return;
         const myOrders = ALL_ORDERS.filter(o => o.studentCode === currentUser.code).reverse();
         if(myOrders.length === 0) { list.innerHTML = "<div class='text-center text-gray-400 py-20 bg-white rounded-2xl shadow-sm border border-gray-100'><i class='lucide-clipboard-list w-12 h-12 mx-auto mb-2 opacity-20'></i><p>주문 내역이 없습니다.</p></div>"; return; }
-        
         list.innerHTML = myOrders.map(h => {
             const isPending = h.status === 'pending';
             const statusBadge = isPending ? `<span class="bg-yellow-100 text-yellow-700 text-xs font-bold px-2.5 py-1 rounded-full border border-yellow-200 animate-pulse flex items-center gap-1">🚚 배송중</span>` : (h.status==='rejected' ? `<span class="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full border border-red-200">🚫 취소됨</span>` : `<span class="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200 flex items-center gap-1"><i class="lucide-check w-3 h-3"></i> 배송완료</span>`);
             const cancelBtn = isPending ? `<button onclick="cancelOrder(${h.id})" class="mt-3 text-xs bg-white text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 font-bold w-full transition">주문취소</button>` : ``;
-            
             let secretBtn = '';
             if (h.status === 'completed' && h.secretImg) {
                 secretBtn = `<button onclick="showSecretCoupon('${h.id}')" class="mt-2 w-full bg-yellow-400 text-yellow-900 text-xs font-bold py-2 rounded-lg hover:bg-yellow-500 shadow-sm transition flex items-center justify-center gap-1"><i data-lucide="ticket" class="w-4 h-4"></i> 쿠폰 확인하기</button>`;
             }
-            
             const expiryText = h.expiryDate ? `<p class="text-[10px] text-gray-400">유효기간: ${h.expiryDate}까지</p>` : '';
-
-            return `<div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center">
-                        <div class="flex items-center gap-4">
-                            <div class="w-14 h-14 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden text-3xl shadow-inner">${getImgHtml(h.img)}</div>
-                            <div>
-                                <div class="flex items-center gap-2"><p class="font-bold text-gray-800 text-base">${h.name}</p></div>
-                                <p class="text-xs text-gray-400 mt-1">${h.date}</p>
-                                ${expiryText}
-                                <div class="mt-2">${statusBadge}</div>
-                            </div>
-                        </div>
-                        <div class="text-right flex flex-col items-end min-w-[100px]">
-                            <p class="text-red-600 font-bold text-lg">-${h.price} <span class="text-xs text-gray-500">쿠키</span></p>
-                            ${cancelBtn}
-                            ${secretBtn}
-                        </div>
-                    </div>`;
+            return `<div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center"><div class="flex items-center gap-4"><div class="w-14 h-14 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden text-3xl shadow-inner">${getImgHtml(h.img)}</div><div><div class="flex items-center gap-2"><p class="font-bold text-gray-800 text-base">${h.name}</p></div><p class="text-xs text-gray-400 mt-1">${h.date}</p>${expiryText}<div class="mt-2">${statusBadge}</div></div></div><div class="text-right flex flex-col items-end min-w-[100px]"><p class="text-red-600 font-bold text-lg">-${h.price} <span class="text-xs text-gray-500">쿠키</span></p>${cancelBtn}${secretBtn}</div></div>`;
         }).join('');
         lucide.createIcons();
     }
@@ -701,36 +546,26 @@
         document.getElementById('modal-secret-img').src = order.secretImg;
         document.getElementById('modal-secret-coupon').classList.remove('hidden');
     }
+    function closeSecretModal() { document.getElementById('modal-secret-coupon').classList.add('hidden'); }
+    function openRequestModal() { document.getElementById('modal-request').classList.remove('hidden'); document.getElementById('request-text').value = ''; document.getElementById('request-text').focus(); }
+    function closeRequestModal() { document.getElementById('modal-request').classList.add('hidden'); }
+    function submitRequest() { const text = document.getElementById('request-text').value.trim(); if(!text) return alert("내용을 입력해주세요."); REQUESTS.push({ id: Date.now(), text: text, date: new Date().toLocaleDateString() }); saveData(); closeRequestModal(); alert("입고 요청이 선생님께 전송되었습니다! 📨"); }
 
-    function closeSecretModal() {
-        document.getElementById('modal-secret-coupon').classList.add('hidden');
-    }
-
-    function openRequestModal() {
-        document.getElementById('modal-request').classList.remove('hidden');
-        document.getElementById('request-text').value = '';
-        document.getElementById('request-text').focus();
-    }
-
-    function closeRequestModal() {
-        document.getElementById('modal-request').classList.add('hidden');
-    }
-
-    function submitRequest() {
-        const text = document.getElementById('request-text').value.trim();
-        if(!text) return alert("내용을 입력해주세요.");
+    function openAdmin() {
+        const inputPw = prompt(ADMIN_PW === "1234" ? "관리자 비밀번호를 입력하세요 (기본: 1234)" : "관리자 비밀번호를 입력하세요");
+        if (inputPw !== ADMIN_PW) { alert("비밀번호 불일치"); return; }
+        const adminSection = document.getElementById('section-admin'); adminSection.classList.remove('hidden'); adminSection.scrollTop = 0; 
+        loadData(); 
         
-        REQUESTS.push({
-            id: Date.now(),
-            text: text,
-            date: new Date().toLocaleDateString()
-        });
-        saveData();
+        // [NEW] API Key 보안 처리 및 Placeholder 변경
+        const apiKeyInput = document.getElementById('dahandin-api-key');
+        if (apiKeyInput) {
+            apiKeyInput.value = ""; // 항상 비워둠
+            apiKeyInput.placeholder = "API Key를 입력해주세요";
+        }
         
-        closeRequestModal();
-        alert("입고 요청이 선생님께 전송되었습니다! 📨");
+        switchAdminTab('products'); renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit();
     }
-
     function saveApiKey() { const key = document.getElementById('dahandin-api-key').value; if(!key) return alert("API Key를 입력하세요."); API_KEY = key; localStorage.setItem('dapang_api_key', API_KEY); alert("저장되었습니다."); }
     function closeAdmin() { document.getElementById('section-admin').classList.add('hidden'); loadData(); renderCategories(); renderProducts(); updateBanner(); }
     
@@ -785,13 +620,89 @@
     function cancelEdit() { 
         editingProductIndex=-1; try { document.getElementById('new-prod-name').value=""; document.getElementById('new-prod-price').value=""; document.getElementById('new-prod-cat').value=""; document.getElementById('new-prod-stock').value=""; document.getElementById('new-prod-discount').value=""; document.getElementById('new-prod-expiry').value="30"; document.getElementById('new-prod-icon').value=""; clearImage(); clearSecretImage(); const secretCheckbox = document.getElementById('is-secret-mode'); if(secretCheckbox) secretCheckbox.checked = false; document.getElementById('secret-img-area').classList.add('hidden'); document.getElementById('new-prod-stock').disabled = false; document.getElementById('form-title').innerHTML='<i data-lucide="plus-circle" class="w-6 h-6"></i> 상품 관리'; document.getElementById('form-title').className="font-bold mb-4 flex items-center gap-2 text-blue-800"; const btn=document.getElementById('btn-submit-prod'); btn.innerText="등록하기"; btn.className="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 shadow-md transition transform active:scale-95"; document.getElementById('btn-cancel-edit').classList.add('hidden'); lucide.createIcons(); } catch(e) { console.error(e); } 
     }
+    
+    function handleProductSubmit() { 
+        try {
+            const nameInput = document.getElementById('new-prod-name'); if(!nameInput) return;
+            const name=nameInput.value; const price=parseInt(document.getElementById('new-prod-price').value); const cat=document.getElementById('new-prod-cat').value; let stock=parseInt(document.getElementById('new-prod-stock').value); const expiryDays = parseInt(document.getElementById('new-prod-expiry').value)||30;
+            if(!name || isNaN(price) || !cat || isNaN(stock)) return alert("상품명, 가격, 카테고리, 재고를 모두 입력해주세요."); 
+            const icon = currentUploadImg || document.getElementById('new-prod-icon').value || "🎁"; const discount = parseInt(document.getElementById('new-prod-discount').value)||0; 
+            const isSecret = document.getElementById('is-secret-mode').checked;
+            let finalSecretImages = [];
+            if(isSecret) {
+                if (currentSecretImages && currentSecretImages.length > 0) { finalSecretImages = currentSecretImages; stock = currentSecretImages.length; }
+                else if (editingProductIndex >= 0 && PRODUCTS[editingProductIndex] && PRODUCTS[editingProductIndex].secretImages) { finalSecretImages = PRODUCTS[editingProductIndex].secretImages; stock = finalSecretImages.length; }
+            }
+            const newProd = { id: editingProductIndex >= 0 ? PRODUCTS[editingProductIndex].id : Date.now(), name, basePrice: price, img: icon, category: cat, discount, stock, expiryDays, secretImages: finalSecretImages }; 
+            if(editingProductIndex >= 0) { PRODUCTS[editingProductIndex] = newProd; saveData(); renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit(); setTimeout(() => alert("수정되었습니다."), 10); } 
+            else { PRODUCTS.push(newProd); saveData(); renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit(); setTimeout(() => alert("등록되었습니다."), 10); } 
+        } catch (e) { alert("오류가 발생했지만 데이터는 보호되었습니다: " + e.message); console.error(e); } finally { renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit(); }
+    }
 
-    // [NEW] 관리자 목록 렌더링 (그리드 + 필터)
+    // [NEW] 관리자 목록 디자인 개선 (이미지 확대, 텍스트 가독성 강화)
+    function renderAdminList() {
+        const cats = ['ALL', ...new Set(PRODUCTS.map(p => p.category))].filter(Boolean);
+        const filterContainer = document.getElementById('admin-category-filter');
+        if(filterContainer) {
+            filterContainer.innerHTML = cats.map(c =>
+                `<button onclick="filterAdminCategory('${c}')"
+                    class="px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition border ${currentAdminCategory === c ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}">
+                    ${c === 'ALL' ? '전체' : c}
+                </button>`
+            ).join('');
+        }
+
+        const list = document.getElementById('admin-prod-list');
+        let filtered = PRODUCTS;
+        if (currentAdminCategory !== 'ALL') {
+            filtered = PRODUCTS.filter(p => p.category === currentAdminCategory);
+        }
+
+        if (filtered.length === 0) {
+            list.innerHTML = `<div class="col-span-2 text-center text-gray-400 py-10 bg-gray-50 rounded-lg border border-dashed border-gray-200">상품이 없습니다.</div>`;
+            return;
+        }
+
+        list.innerHTML = filtered.map((p) => {
+            const originalIndex = PRODUCTS.findIndex(prod => prod.id === p.id); 
+            const secretBadge = (p.secretImages && p.secretImages.length > 0) ? `<span class="absolute bottom-2 right-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-1 rounded shadow-sm z-20">🎫 ${p.secretImages.length}</span>` : '';
+
+            // 이미지 영역 처리 (Emoji는 text-6xl, 이미지는 object-contain)
+            let imgContent;
+            if (p.img.startsWith('data:image')) {
+                imgContent = `<img src="${p.img}" class="w-full h-full object-contain p-1">`;
+            } else {
+                imgContent = `<div class="text-6xl">${p.img}</div>`;
+            }
+
+            return `
+            <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col relative group hover:border-blue-300 transition">
+                <div class="w-full h-32 bg-gray-50 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative border border-gray-100">
+                    ${imgContent}
+                    ${secretBadge}
+                </div>
+                <div class="flex-1 flex flex-col text-center">
+                    <p class="font-bold text-base text-gray-800 truncate mb-2 px-1">${p.name}</p>
+                    <div class="flex justify-center items-center text-sm text-gray-500 gap-2 mb-3">
+                        <span class="font-bold text-blue-600">${p.basePrice} C</span>
+                        <span class="bg-gray-100 px-2 py-0.5 rounded text-xs">재고 ${p.stock}</span>
+                    </div>
+                </div>
+                <div class="flex gap-1 mt-auto pt-2 border-t border-gray-100">
+                    <button onclick="editProduct(${originalIndex})" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg text-xs font-bold hover:bg-blue-100 transition">수정</button>
+                    <button onclick="deleteProduct(${originalIndex})" class="flex-1 bg-red-50 text-red-500 py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition">삭제</button>
+                </div>
+            </div>`;
+        }).join('');
+        lucide.createIcons();
+    }
+
     function filterAdminCategory(c) {
         currentAdminCategory = c;
         renderAdminList();
     }
 
+    // 기타 필요한 함수들 (renderRequestList, deleteRequest 등)
     function renderRequestList() { const list = document.getElementById('admin-request-list'); if(!REQUESTS || REQUESTS.length === 0) { list.innerHTML = ""; document.getElementById('admin-request-empty').classList.remove('hidden'); return; } document.getElementById('admin-request-empty').classList.add('hidden'); const sorted = [...REQUESTS].sort((a,b) => b.id - a.id); list.innerHTML = sorted.map((req, idx) => `<div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex justify-between items-start gap-4"><div class="flex-1"><p class="text-gray-800 text-base font-medium whitespace-pre-wrap">${req.text}</p><p class="text-xs text-gray-400 mt-2">${req.date}</p></div><button onclick="deleteRequest(${req.id})" class="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition" title="삭제"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>`).join(''); lucide.createIcons(); }
     function deleteRequest(id) { if(confirm("이 요청을 삭제하시겠습니까?")) { const idx = REQUESTS.findIndex(r => r.id === id); if(idx > -1) { REQUESTS.splice(idx, 1); saveData(); renderRequestList(); } } }
     function renderAdminOrders() { const list = document.getElementById('admin-order-list'); const pendingOrders = ALL_ORDERS.filter(o => o.status === 'pending'); if(pendingOrders.length === 0) { list.innerHTML = ""; document.getElementById('admin-order-empty').classList.remove('hidden'); } else { document.getElementById('admin-order-empty').classList.add('hidden'); list.innerHTML = pendingOrders.map(o => `<div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center"><div class="flex items-center gap-3"><div class="text-3xl bg-gray-50 rounded-lg w-12 h-12 flex items-center justify-center overflow-hidden">${getImgHtml(o.img).replace('class="', 'class="w-full h-full object-cover ')}</div><div><p class="font-bold text-sm text-gray-800"><span class="text-blue-600 font-extrabold">[${o.studentName}]</span> ${o.name}</p><p class="text-xs text-gray-400 mt-1">${o.date}</p></div></div><div class="flex gap-2"><button onclick="rejectOrder(${o.id})" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-200 transition">취소</button><button onclick="confirmOrder(${o.id})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-md transition">승인</button></div></div>`).join(''); } renderCompletedOrders(1); }
