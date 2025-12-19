@@ -19,11 +19,6 @@
         .prod-img-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 0.5rem; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        
-        /* 카테고리 칩 스타일 */
-        .chip-btn { transition: all 0.2s; }
-        .chip-btn:hover { background-color: #dbeafe; color: #1e40af; transform: translateY(-1px); }
-        .chip-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -147,7 +142,7 @@
             <div class="bg-blue-50 p-5 rounded-2xl mb-8 border border-blue-100 shadow-sm">
                 <h3 class="font-bold mb-4 flex items-center gap-2 text-blue-800" id="form-title"><i data-lucide="plus-circle" class="w-6 h-6"></i> 상품 관리</h3>
                 
-                <!-- [NEW] 리뉴얼된 상품 등록 폼 -->
+                <!-- 리뉴얼된 상품 등록 폼 -->
                 <div class="space-y-3">
                     <!-- Row 1: 상품명 -->
                     <div class="w-full">
@@ -164,8 +159,8 @@
                         <div class="w-[80%]">
                             <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">카테고리</label>
                             <input id="new-prod-cat" type="text" placeholder="직접 입력하거나 아래 태그 선택" class="w-full border border-blue-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none">
-                            <!-- [NEW] 카테고리 칩 영역 -->
-                            <div id="category-chips-area" class="flex flex-wrap gap-1.5 mt-2">
+                            <!-- [수정됨] 카테고리 칩 영역: 강제 삽입 -->
+                            <div id="category-chip-area" class="flex flex-wrap gap-2 mt-2 mb-2 min-h-[30px]">
                                 <!-- JS로 렌더링됨 -->
                             </div>
                         </div>
@@ -188,7 +183,7 @@
                             <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">할인율 (%)</label>
                             <input id="new-prod-discount" type="number" min="0" max="100" placeholder="0" class="w-full border-b-2 border-gray-200 p-2 text-center font-bold text-lg focus:outline-none focus:border-blue-500 text-red-500">
                         </div>
-                        <!-- [NEW] 유효기간 -->
+                        <!-- 유효기간 -->
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">유효기간 (일)</label>
                             <input id="new-prod-expiry" type="number" min="1" placeholder="30" value="30" class="w-full border-b-2 border-gray-200 p-2 text-center font-bold text-lg focus:outline-none focus:border-blue-500 text-indigo-500">
@@ -892,18 +887,16 @@
     function updateCartBadge() { const c=cart.reduce((a,b)=>a+b.quantity,0); document.getElementById('nav-cart-badge').innerText=c; document.getElementById('nav-cart-badge').classList.toggle('hidden', c===0); }
     function updateCategoryOptions() { document.getElementById('category-options').innerHTML=[...new Set(PRODUCTS.map(p=>p.category))].map(c=>`<option value="${c}">`).join(''); }
     
-    // [NEW] 카테고리 칩 렌더링
+    // [NEW] 카테고리 칩 렌더링 (업데이트된 로직)
     function renderCategoryChips() {
-        const chipsArea = document.getElementById('category-chips-area');
-        const categories = [...new Set(PRODUCTS.map(p => p.category))];
+        const area = document.getElementById('category-chip-area');
+        if (!area) return;
         
-        if(categories.length === 0) {
-            chipsArea.innerHTML = "";
-            return;
-        }
-
-        chipsArea.innerHTML = categories.map(c => 
-            `<button onclick="selectCategory('${c}')" class="chip-btn px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold border border-blue-100">#${c}</button>`
+        // 빈 값 제외하고 중복 제거
+        const uniqueCats = [...new Set(PRODUCTS.map(p => p.category))].filter(c => c && c.trim() !== '');
+        
+        area.innerHTML = uniqueCats.map(c => 
+            `<button onclick="selectCategory('${c}')" class="px-3 py-1 bg-gray-100 hover:bg-blue-100 hover:text-blue-600 text-gray-600 text-xs font-bold rounded-full transition border border-gray-200">${c}</button>`
         ).join('');
     }
 
@@ -1028,7 +1021,7 @@
         document.getElementById('new-prod-cat').value=""; 
         document.getElementById('new-prod-stock').value=""; 
         document.getElementById('new-prod-discount').value=""; 
-        document.getElementById('new-prod-expiry').value="30"; // [NEW] 초기화
+        document.getElementById('new-prod-expiry').value="30"; 
         clearImage(); 
         
         const secretCheckbox = document.getElementById('is-secret-mode');
@@ -1106,4 +1099,4 @@
     }
 </script>
 </body>
-</html>ㄴ
+</html>
