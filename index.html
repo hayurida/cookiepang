@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>우리반 쿠키상점 쿠키팡! - v34 (디자인개선)</title>
+    <title>우리반 쿠키상점 쿠키팡! - v35 (관리자 그리드뷰)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -185,7 +185,9 @@
 
             <h3 class="font-bold mb-4 text-xl flex items-center gap-2 text-gray-800"><i data-lucide="package" class="w-6 h-6"></i> 등록된 상품 목록</h3>
             <div id="admin-category-filter" class="flex overflow-x-auto gap-2 mb-3 pb-2 scrollbar-hide"></div>
-            <div id="admin-prod-list" class="grid grid-cols-2 gap-2 mb-8 min-h-[100px]"></div>
+            
+            <!-- [변경] 메인 화면과 동일한 3단 그리드 레이아웃 -->
+            <div id="admin-prod-list" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 min-h-[100px]"></div>
 
             <div class="bg-gray-100 p-5 rounded-2xl mb-6">
                 <h3 class="font-bold mb-3 flex items-center gap-2 text-gray-700">⚙️ 기타 설정</h3>
@@ -319,7 +321,7 @@
     let ALL_ORDERS = [];
     let REQUESTS = []; 
     let ADMIN_PW = "1234";
-    let API_KEY = ""; // [NEW] API Key 보안 처리
+    let API_KEY = ""; 
     let currentUser = null;
     let cart = [];
     let currentCategory = 'ALL';
@@ -556,14 +558,8 @@
         if (inputPw !== ADMIN_PW) { alert("비밀번호 불일치"); return; }
         const adminSection = document.getElementById('section-admin'); adminSection.classList.remove('hidden'); adminSection.scrollTop = 0; 
         loadData(); 
-        
-        // [NEW] API Key 보안 처리 및 Placeholder 변경
         const apiKeyInput = document.getElementById('dahandin-api-key');
-        if (apiKeyInput) {
-            apiKeyInput.value = ""; // 항상 비워둠
-            apiKeyInput.placeholder = "API Key를 입력해주세요";
-        }
-        
+        if (apiKeyInput) { apiKeyInput.value = ""; apiKeyInput.placeholder = "API Key를 입력해주세요"; }
         switchAdminTab('products'); renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit();
     }
     function saveApiKey() { const key = document.getElementById('dahandin-api-key').value; if(!key) return alert("API Key를 입력하세요."); API_KEY = key; localStorage.setItem('dapang_api_key', API_KEY); alert("저장되었습니다."); }
@@ -639,7 +635,7 @@
         } catch (e) { alert("오류가 발생했지만 데이터는 보호되었습니다: " + e.message); console.error(e); } finally { renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit(); }
     }
 
-    // [NEW] 관리자 목록 디자인 개선 (이미지 확대, 텍스트 가독성 강화)
+    // [NEW] 관리자 목록 렌더링 - 학생 메인 화면과 동일한 3단 그리드 카드 UI
     function renderAdminList() {
         const cats = ['ALL', ...new Set(PRODUCTS.map(p => p.category))].filter(Boolean);
         const filterContainer = document.getElementById('admin-category-filter');
@@ -659,38 +655,39 @@
         }
 
         if (filtered.length === 0) {
-            list.innerHTML = `<div class="col-span-2 text-center text-gray-400 py-10 bg-gray-50 rounded-lg border border-dashed border-gray-200">상품이 없습니다.</div>`;
+            list.innerHTML = `<div class="col-span-2 md:col-span-3 text-center text-gray-400 py-10 bg-gray-50 rounded-lg border border-dashed border-gray-200">상품이 없습니다.</div>`;
             return;
         }
 
         list.innerHTML = filtered.map((p) => {
             const originalIndex = PRODUCTS.findIndex(prod => prod.id === p.id); 
-            const secretBadge = (p.secretImages && p.secretImages.length > 0) ? `<span class="absolute bottom-2 right-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-1 rounded shadow-sm z-20">🎫 ${p.secretImages.length}</span>` : '';
-
-            // 이미지 영역 처리 (Emoji는 text-6xl, 이미지는 object-contain)
-            let imgContent;
-            if (p.img.startsWith('data:image')) {
-                imgContent = `<img src="${p.img}" class="w-full h-full object-contain p-1">`;
-            } else {
-                imgContent = `<div class="text-6xl">${p.img}</div>`;
-            }
+            const discount = Math.max(p.discount || 0, GLOBAL_DISCOUNT);
+            const price = discount > 0 ? Math.floor(p.basePrice * (1 - discount/100)) : p.basePrice;
+            const isSoldOut = p.stock <= 0;
+            const stockBadge = `<div class="absolute top-3 left-3 bg-gray-900/80 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10 backdrop-blur-sm">남은수량: ${p.stock}</div>`;
+            const soldOutOverlay = isSoldOut ? `<div class="absolute inset-0 bg-black/50 rounded-xl z-20 flex items-center justify-center"><span class="text-white font-bold text-xl border-2 border-white px-3 py-1 rounded">SOLD OUT</span></div>` : '';
+            const secretBadge = (p.secretImages && p.secretImages.length > 0) ? `<div class="absolute bottom-2 left-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">🎫 쿠폰</div>` : '';
 
             return `
-            <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col relative group hover:border-blue-300 transition">
-                <div class="w-full h-32 bg-gray-50 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative border border-gray-100">
-                    ${imgContent}
+            <div class="bg-white p-4 rounded-2xl border-2 border-gray-100 shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-300 transition-all duration-300">
+                ${soldOutOverlay}
+                ${stockBadge}
+                ${!isSoldOut && discount > 0 ? `<div class="absolute top-0 right-0 bg-red-600 text-white text-sm font-bold px-3 py-1.5 rounded-bl-xl rounded-tr-xl z-10 shadow-md">${discount}% SALE</div>` : ''}
+                <div class="w-full h-32 bg-gray-50 rounded-xl mb-4 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform duration-300 relative">
+                    ${getImgHtml(p.img)}
                     ${secretBadge}
                 </div>
-                <div class="flex-1 flex flex-col text-center">
-                    <p class="font-bold text-base text-gray-800 truncate mb-2 px-1">${p.name}</p>
-                    <div class="flex justify-center items-center text-sm text-gray-500 gap-2 mb-3">
-                        <span class="font-bold text-blue-600">${p.basePrice} C</span>
-                        <span class="bg-gray-100 px-2 py-0.5 rounded text-xs">재고 ${p.stock}</span>
+                <div class="absolute top-36 right-3 text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded font-bold">${p.category}</div>
+                <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${p.name}</h3>
+                <div class="mt-auto">
+                    <div class="flex items-center gap-2 mb-3">
+                        ${!isSoldOut && discount > 0 ? `<span class="price-strike text-gray-400 font-medium">${p.basePrice}</span>` : ''}
+                        <span class="text-red-600 font-bold text-2xl">${price}</span><span class="text-sm text-gray-500 font-bold mt-1">쿠키</span>
                     </div>
-                </div>
-                <div class="flex gap-1 mt-auto pt-2 border-t border-gray-100">
-                    <button onclick="editProduct(${originalIndex})" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg text-xs font-bold hover:bg-blue-100 transition">수정</button>
-                    <button onclick="deleteProduct(${originalIndex})" class="flex-1 bg-red-50 text-red-500 py-2 rounded-lg text-xs font-bold hover:bg-red-100 transition">삭제</button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="editProduct(${originalIndex})" class="border-2 border-blue-600 text-blue-600 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition">수정</button>
+                        <button onclick="deleteProduct(${originalIndex})" class="bg-red-50 text-red-600 border-2 border-red-50 py-2.5 rounded-xl font-bold text-sm hover:bg-red-100 transition">삭제</button>
+                    </div>
                 </div>
             </div>`;
         }).join('');
