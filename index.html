@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>우리반 쿠키상점 쿠키팡! - v35 (관리자 그리드뷰)</title>
+    <title>우리반 쿠키상점 쿠키팡! - v36 (오류수정완료)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -186,7 +186,7 @@
             <h3 class="font-bold mb-4 text-xl flex items-center gap-2 text-gray-800"><i data-lucide="package" class="w-6 h-6"></i> 등록된 상품 목록</h3>
             <div id="admin-category-filter" class="flex overflow-x-auto gap-2 mb-3 pb-2 scrollbar-hide"></div>
             
-            <!-- [변경] 메인 화면과 동일한 3단 그리드 레이아웃 -->
+            <!-- 메인 화면과 동일한 3단 그리드 레이아웃 -->
             <div id="admin-prod-list" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 min-h-[100px]"></div>
 
             <div class="bg-gray-100 p-5 rounded-2xl mb-6">
@@ -207,7 +207,6 @@
 
         <!-- [2] 주문/배송 관리 탭 -->
         <div id="admin-tab-orders" class="hidden pb-20">
-            <!-- (기존 내용 유지) -->
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-xl flex items-center gap-2 text-orange-600"><i data-lucide="truck" class="w-6 h-6"></i> 미배송 주문 내역</h3>
                 <button onclick="approveAllOrders()" class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-200 flex items-center gap-1 transition"><i data-lucide="check-square" class="w-4 h-4"></i> 전체 승인</button>
@@ -440,6 +439,7 @@
         if (maxDiscount > 0) { banner.classList.remove('hidden'); document.getElementById('banner-text').innerText = `🔥 현재 최대 ${maxDiscount}% 세일 진행 중!`; } else { banner.classList.add('hidden'); }
     }
 
+    // 학생용 메인 상품 목록 렌더링
     function renderProducts(tgt='product-list', filter='') {
         const container = document.getElementById(tgt); if(!container) return; container.innerHTML = "";
         let list = currentCategory==='ALL' ? PRODUCTS : PRODUCTS.filter(p=>p.category===currentCategory);
@@ -455,6 +455,8 @@
 
             const el = document.createElement('div');
             el.className = "bg-white p-4 rounded-2xl border-2 border-gray-100 shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-300 transition-all duration-300";
+            
+            // [Fix] 학생용 버튼 onclick 이벤트 복구
             el.innerHTML = `
                 ${soldOutOverlay}
                 ${stockBadge}
@@ -560,7 +562,9 @@
         loadData(); 
         const apiKeyInput = document.getElementById('dahandin-api-key');
         if (apiKeyInput) { apiKeyInput.value = ""; apiKeyInput.placeholder = "API Key를 입력해주세요"; }
-        switchAdminTab('products'); renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit();
+        
+        // [Fix] Remove updateCategoryOptions()
+        switchAdminTab('products'); renderAdminList(); renderCategoryChips(); cancelEdit();
     }
     function saveApiKey() { const key = document.getElementById('dahandin-api-key').value; if(!key) return alert("API Key를 입력하세요."); API_KEY = key; localStorage.setItem('dapang_api_key', API_KEY); alert("저장되었습니다."); }
     function closeAdmin() { document.getElementById('section-admin').classList.add('hidden'); loadData(); renderCategories(); renderProducts(); updateBanner(); }
@@ -600,7 +604,16 @@
     function deleteProduct(i) { if(confirm("삭제?")) { PRODUCTS.splice(i,1); saveData(); renderAdminList(); renderCategoryChips(); } }
     function saveUser() { localStorage.setItem('dapang_user_'+currentUser.code, JSON.stringify({spent:currentUser.spent, cart:cart})); }
     function resetProducts() { if(confirm("초기화?")) { localStorage.clear(); location.reload(); } }
-    function applyGlobalDiscount(v) { GLOBAL_DISCOUNT=v; localStorage.setItem('dapang_global_discount', GLOBAL_DISCOUNT); alert(`전체 할인율이 ${v}%로 적용되었습니다.`); }
+    
+    // [Fix] 전체 할인 적용 시 즉시 반영
+    function applyGlobalDiscount(v) { 
+        GLOBAL_DISCOUNT=v; 
+        localStorage.setItem('dapang_global_discount', GLOBAL_DISCOUNT); 
+        updateBanner(); // 추가
+        renderProducts(); // 추가
+        alert(`전체 할인율이 ${v}%로 적용되었습니다.`); 
+    }
+    
     function filterProducts() { renderProducts('search-results', document.getElementById('search-input').value); }
     
     function editProduct(i) { 
@@ -630,12 +643,12 @@
                 else if (editingProductIndex >= 0 && PRODUCTS[editingProductIndex] && PRODUCTS[editingProductIndex].secretImages) { finalSecretImages = PRODUCTS[editingProductIndex].secretImages; stock = finalSecretImages.length; }
             }
             const newProd = { id: editingProductIndex >= 0 ? PRODUCTS[editingProductIndex].id : Date.now(), name, basePrice: price, img: icon, category: cat, discount, stock, expiryDays, secretImages: finalSecretImages }; 
-            if(editingProductIndex >= 0) { PRODUCTS[editingProductIndex] = newProd; saveData(); renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit(); setTimeout(() => alert("수정되었습니다."), 10); } 
-            else { PRODUCTS.push(newProd); saveData(); renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit(); setTimeout(() => alert("등록되었습니다."), 10); } 
-        } catch (e) { alert("오류가 발생했지만 데이터는 보호되었습니다: " + e.message); console.error(e); } finally { renderAdminList(); updateCategoryOptions(); renderCategoryChips(); cancelEdit(); }
+            if(editingProductIndex >= 0) { PRODUCTS[editingProductIndex] = newProd; saveData(); renderAdminList(); renderCategoryChips(); cancelEdit(); setTimeout(() => alert("수정되었습니다."), 10); } // Remove updateCategoryOptions
+            else { PRODUCTS.push(newProd); saveData(); renderAdminList(); renderCategoryChips(); cancelEdit(); setTimeout(() => alert("등록되었습니다."), 10); } // Remove updateCategoryOptions
+        } catch (e) { alert("오류가 발생했지만 데이터는 보호되었습니다: " + e.message); console.error(e); } finally { renderAdminList(); renderCategoryChips(); cancelEdit(); } // Remove updateCategoryOptions
     }
 
-    // [NEW] 관리자 목록 렌더링 - 학생 메인 화면과 동일한 3단 그리드 카드 UI
+    // 관리자 목록 렌더링
     function renderAdminList() {
         const cats = ['ALL', ...new Set(PRODUCTS.map(p => p.category))].filter(Boolean);
         const filterContainer = document.getElementById('admin-category-filter');
@@ -699,7 +712,7 @@
         renderAdminList();
     }
 
-    // 기타 필요한 함수들 (renderRequestList, deleteRequest 등)
+    // 기타 필요한 함수들
     function renderRequestList() { const list = document.getElementById('admin-request-list'); if(!REQUESTS || REQUESTS.length === 0) { list.innerHTML = ""; document.getElementById('admin-request-empty').classList.remove('hidden'); return; } document.getElementById('admin-request-empty').classList.add('hidden'); const sorted = [...REQUESTS].sort((a,b) => b.id - a.id); list.innerHTML = sorted.map((req, idx) => `<div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex justify-between items-start gap-4"><div class="flex-1"><p class="text-gray-800 text-base font-medium whitespace-pre-wrap">${req.text}</p><p class="text-xs text-gray-400 mt-2">${req.date}</p></div><button onclick="deleteRequest(${req.id})" class="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition" title="삭제"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>`).join(''); lucide.createIcons(); }
     function deleteRequest(id) { if(confirm("이 요청을 삭제하시겠습니까?")) { const idx = REQUESTS.findIndex(r => r.id === id); if(idx > -1) { REQUESTS.splice(idx, 1); saveData(); renderRequestList(); } } }
     function renderAdminOrders() { const list = document.getElementById('admin-order-list'); const pendingOrders = ALL_ORDERS.filter(o => o.status === 'pending'); if(pendingOrders.length === 0) { list.innerHTML = ""; document.getElementById('admin-order-empty').classList.remove('hidden'); } else { document.getElementById('admin-order-empty').classList.add('hidden'); list.innerHTML = pendingOrders.map(o => `<div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center"><div class="flex items-center gap-3"><div class="text-3xl bg-gray-50 rounded-lg w-12 h-12 flex items-center justify-center overflow-hidden">${getImgHtml(o.img).replace('class="', 'class="w-full h-full object-cover ')}</div><div><p class="font-bold text-sm text-gray-800"><span class="text-blue-600 font-extrabold">[${o.studentName}]</span> ${o.name}</p><p class="text-xs text-gray-400 mt-1">${o.date}</p></div></div><div class="flex gap-2"><button onclick="rejectOrder(${o.id})" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-200 transition">취소</button><button onclick="confirmOrder(${o.id})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-md transition">승인</button></div></div>`).join(''); } renderCompletedOrders(1); }
